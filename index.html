@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Line Integral Calculus Sandbox</title>
+    <!-- Combined PyScript stable core modules -->
+    <link rel="stylesheet" href="https://pyscript.net" />
+    <script type="module" src="https://pyscript.net"></script>
+    <style>
+        body { font-family: 'DejaVu Sans', Arial, sans-serif; background-color: #121212; color: #E0E0E0; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { max-width: 1100px; width: 100%; background-color: #1E1E1E; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .input-group { display: flex; flex-direction: column; }
+        label { color: #A0A0A0; font-size: 0.85rem; margin-bottom: 4px; font-weight: bold; }
+        input { background-color: #2D2D2D; border: 1px solid #444; color: #E0E0E0; padding: 8px; border-radius: 4px; font-size: 0.95rem; font-family: monospace; }
+        .btn { background-color: #007acc; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
+        .btn:hover { background-color: #005999; }
+        #plot-target { width: 100%; text-align: center; margin-top: 15px; background-color: #121212; border-radius: 6px; min-height: 500px; display: flex; justify-content: center; align-items: center; }
+        .splash { color: #D4AF37; font-weight: bold; padding: 40px; text-align: center; font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Vector Calculus Sandbox</h2>
+    <p style="color: #A0A0A0; margin-top: -10px; margin-bottom: 20px;">Define fields and curves using standard Python notation (e.g., <code>np.cos(t)</code>, <code>X**2</code>, <code>np.pi</code>).</p>
+    <div class="controls">
+        <div class="input-group"><label>Field F_x(X, Y)</label><input type="text" id="in_fx" value="-Y"></div>
+        <div class="input-group"><label>Field F_y(X, Y)</label><input type="text" id="in_fy" value="X"></div>
+        <div class="input-group"><label>Curve x(t)</label><input type="text" id="in_rx" value="np.cos(t)"></div>
+        <div class="input-group"><label>Curve y(t)</label><input type="text" id="in_ry" value="2*np.sin(t)"></div>
+        <div class="input-group"><label>t Min (a)</label><input type="text" id="in_ta" value="0"></div>
+        <div class="input-group"><label>t Max (b)</label><input type="text" id="in_tb" value="2*np.pi"></div>
+    </div>
+    <button class="btn" id="btn-run" py-click="build_sandbox">Recompute & Render Plot</button>
+    <div id="plot-target">
+        <div class="splash" id="loading-splash">Initializing WebAssembly Core Engine Python Packages...</div>
+    </div>
+</div>
+
+<script type="py" config='{"packages":["numpy","matplotlib"]}'>
+import numpy as np
+import matplotlib.pyplot as plt
+from pyscript import display, document
+import js
+from pyodide.ffi import create_proxy
+
+x_all, y_all, t_values, arc_lengths = None, None, None, None
+T_x_all, T_y_all, N_x_all, N_y_all = None, None, None, None
+f_work_all, f_flux_all, work_poly_verts, flux_polygons_verts = None, None, None, None
+str_fx, str_fy, current_idx, fig, lines, loop_running = "-Y", "X", 0, None, {}, False
+
+def build_sandbox(event=None):
+    global x_all, y_all, t_values, arc_lengths, T_x_all, T_y_all, N_x_all, N_y_all, f_work_all, f_flux_all, work_poly_verts, flux_polygons_verts, current_idx, fig, lines, str_fx, str_fy, loop_running
+    try:
+        splash = document.getElementById('loading-splash')
+        if splash: splash.style.display = 'none'
+        str_fx, str_fy = document.getElementById('in_fx').value, document.getElementById('in_fy').value
+        str_rx, str_ry = document.getElementById('in_rx').value, document.getElementById('in_ry').value
+        env = {'np': np, 'pi': np.pi, 'sin': np.sin, 'cos': np.cos}
+        a, b = float(eval(document.getElementById('in_ta').value, {}, env)), float(eval(document.getElementById('in_tb').value, {}, env))
+        t_values = np.linspace(a, b, 120)
+        x_all = np.array([float(eval(str_rx, {}, {'t': t, 'np': np})) for t in t_values])
+        y_all = np.array([float(eval(str_ry, {}, {'t': t, 'np': np})) for t in t_values])
+        dx, dy = np.diff(x_all), np.diff(y_all)
+        ds = np.hypot(dx, dy)
+        arc_lengths = np.zeros_like(t_values); arc_lengths[1:] = np.cumsum(ds)
+        T_x_all, T_y_all = np.zeros_like(t_values), np.zeros_like(t_values)
+        safeds = np.where(ds == 0, 1e-8, ds)
+        T_x_all[:-1], T_y_all[:-1] = dx / safeds, dy / safeds; T_x_all[-1], T_y_all[-1] = T_x_all[-2], T_y_all[-2]
+        N_x_all, N_y_all = T_y_all, -T_x_all
+        U_curve = np.array([float(eval(str_fx, {}, {'X': x_all[i], 'Y': y_all[i], 'np': np})) for i in range(len(t_values))])
+        V_curve = np.array([float(eval(str_fy, {}, {'X': x_all[i], 'Y': y_all[i], 'np': np})) for i in range(len(t_values))])
+        f_work_all = (U_curve * T_x_all) + (V_curve * T_y_all)
+        f_flux_all = (U_curve * N_x_all) + (V_curve * N_y_all)
+        work_poly_verts, flux_polygons_verts = [], []
+        for idx in range(len(t_values)):
+            sc = arc_lengths[:idx+1]; wv = np.zeros((len(sc) + 2, 2)); wv[1:-1] = np.column_stack((sc, f_work_all[:idx+1])); wv[-1] = [sc[-1], 0]; work_poly_verts.append(wv)
+            fv = np.zeros((len(sc) + 2, 2)); fv[1:-1] = np.column_stack((sc, f_flux_all[:idx+1])); fv[-1] = [sc[-1], 0]; flux_polygons_verts.append(fv)
+        plt.close('all'); plt.rcParams['text.color'] = '#E0E0E0'; plt.rcParams['axes.labelcolor'] = '#A0A0A0'; plt.rcParams['xtick.color'] = '#707070'; plt.rcParams['ytick.color'] = '#707070'
+        fig = plt.figure(figsize=(10, 7.5), facecolor='#121212')
+        ax1 = plt.subplot2grid((2, 2), (0, 0), colspan=2); ax2 = plt.subplot2grid((2, 2), (1, 0)); ax3 = plt.subplot2grid((2, 2), (1, 1))
+        plt.subplots_adjust(hspace=0.4, wspace=0.25, top=0.92, bottom=0.1)
+        for sa in [ax1, ax2, ax3]: sa.set_facecolor('#1E1E1E'); sa.grid(True, linestyle='--', color='#2D2D2D', alpha=0.4)
+        mx = 0.5 if (np.max(x_all)-np.min(x_all))==0 else (np.max(x_all)-np.min(x_all))*0.2
+        my = 0.5 if (np.max(y_all)-np.min(y_all))==0 else (np.max(y_all)-np.min(y_all))*0.2
+        xl, yl = [np.min(x_all)-mx, np.max(x_all)+mx], [np.min(y_all)-my, np.max(y_all)+my]
+        X_m, Y_m = np.meshgrid(np.linspace(xl[0], xl[1], 10), np.linspace(yl[0], yl[1], 10))
+        U_m = np.array([[float(eval(str_fx, {}, {'X': X_m[r,c], 'Y': Y_m[r,c], 'np': np})) for c in range(10)] for r in range(10)])
+        V_m = np.array([[float(eval(str_fy, {}, {'X': X_m[r,c], 'Y': Y_m[r,c], 'np': np})) for c in range(10)] for r in range(10)])
+        ax1.quiver(X_m, Y_m, U_m, V_m, color='#D4AF37', alpha=0.15); ax1.plot(x_all, y_all, color='#FFFFFF', linestyle='-', linewidth=1.0, alpha=0.15)
+        lines['curve'], = ax1.plot(x_all[:1], y_all[:1], color='#CCCCCC', linewidth=2.5)
+        lines['dot'], = ax1.plot([x_all[0]], [y_all[0]], 'o', color='#CCCCCC', markersize=8)
+        lines['t_arr'] = ax1.quiver(x_all[0], y_all[0], T_x_all[0], T_y_all[0], angles='xy', scale_units='xy', scale=1, color='#E74C3C', width=0.005)
+        lines['n_arr'] = ax1.quiver(x_all[0], y_all[0], N_x_all[0], N_y_all[0], angles='xy', scale_units='xy', scale=1, color='#3498DB', width=0.005)
+        lines['text'] = ax1.text(0.02, 0.95, '', transform=ax1.transAxes, fontsize=9, color='#E0E0E0', verticalalignment='top')
+        ax1.set_xlim(xl); ax1.set_ylim(yl)
+        ax2.plot(arc_lengths, f_work_all, color='#FFFFFF', linestyle='-', linewidth=1.0, alpha=0.15)
+        lines['w_line'], = ax2.plot(arc_lengths[:1], f_work_all[:1], color='#E74C3C', linewidth=2.0)
+        lines['w_dot'], = ax2.plot([arc_lengths[0]], [f_work_all[0]], 'o', color='#E74C3C', markersize=6)
+        lines['w_poly'] = ax2.fill(work_poly_verts[0][:,0], work_poly_verts[0][:,1], facecolor='#E74C3C', alpha=0.2)[0]
+        ax2.set_xlim(0, np.max(arc_lengths) if np.max(arc_lengths)>0 else 1); ax2.set_ylim(np.min(f_work_all)-0.5, np.max(f_work_all)+0.5); ax2.set_title("Flow Integrand: F · T", fontsize=10)
+        ax3.plot(arc_lengths, f_flux_all, color='#FFFFFF', linestyle='-', linewidth=1.0, alpha=0.15)
+        lines['f_line'], = ax3.plot(arc_lengths[:1], f_flux_all[:1], color='#3498DB', linewidth=2.0)
+        lines['f_dot'], = ax3.plot([arc_lengths[0]], [f_flux_all[0]], 'o', color='#3498DB', markersize=6)
+        lines['f_poly'] = ax3.fill(flux_polygons_verts[0][:,0], flux_polygons_verts[0][:,1], facecolor='#3498DB', alpha=0.2)[0]
+        ax3.set_xlim(0, np.max(arc_lengths) if np.max(arc_lengths)>0 else 1); ax3.set_ylim(np.min(f_flux_all)-0.5, np.max(f_flux_all)+0.5); ax3.set_title("Flux Integrand: F · N", fontsize=10)
+        current_idx = 0; target_div = document.getElementById('plot-target'); target_div.innerHTML = ''; display(fig, target="plot-target")
+        if not loop_running: loop_running = True; run_loop()
+    except Exception as e:
+        js.alert(f"Simulation Trace Error: {str(e)}")
+
+def run_loop(*args):
+    global current_idx
+    if fig is not None and t_values is not None and len(t_values) > 0:
+        current_idx = (current_idx + 1) % len(t_values); idx = current_idx
+        lines['curve'].set_data(x_all[:idx+1], y_all[:idx+1]); lines['dot'].set_data([x_all[idx]], [y_all[idx]])
+        lines['t_arr'].set_offsets([x_all[idx], y_all[idx]]); lines['t_arr'].set_UVC(T_x_all[idx], T_y_all[idx])
+        lines['n_arr'].set_offsets([x_all[idx], y_all[idx]]); lines['n_arr'].set_UVC(N_x_all[idx], N_y_all[idx])
+        w_val = float(np.sum(f_work_all[:idx] * (arc_lengths[1:idx+1] - arc_lengths[:idx]))) if idx > 0 else 0.0
