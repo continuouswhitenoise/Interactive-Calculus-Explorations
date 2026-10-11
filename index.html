@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Line Integral Simulator</title>
-    <!-- FIXED: Hardcoded production-ready CDN infrastructure lines -->
-    <script src="https://cloudflare.com" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://jsdelivr.net" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- Lightweight native Chart.js build -->
+    <script src="https://jsdelivr.net"></script>
     <style>
         body {
             font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif;
@@ -102,7 +101,7 @@
 
 <div class="container">
     <h2>Interactive Line Integral Canvas</h2>
-    <p style="color: #A0A0A0; margin-top: -10px; margin-bottom: 25px;">Type any mathematical expressions below using <code>t</code> for the curve and <code>x, y</code> for the field.</p>
+    <p style="color: #A0A0A0; margin-top: -10px; margin-bottom: 25px;">Type mathematical expressions using <code>t</code> for the curve and <code>x, y</code> for the field.</p>
     
     <div class="controls">
         <div class="input-group">
@@ -127,7 +126,7 @@
         </div>
         <div class="input-group">
             <label for="tb">t end (b)</label>
-            <input type="text" id="tb" value="2 * pi">
+            <input type="text" id="tb" value="2 * Math.PI">
         </div>
     </div>
     
@@ -154,29 +153,40 @@
 <script>
     let chartInstance = null;
 
+    // Helper function converting human math typing into raw fast Javascript execution
+    function parseToNativeFunction(formulaStr, variables) {
+        let clean = formulaStr
+            .replace(/sin\(/g, 'Math.sin(')
+            .replace(/cos\(/g, 'Math.cos(')
+            .replace(/tan\(/g, 'Math.tan(')
+            .replace(/exp\(/g, 'Math.exp(')
+            .replace(/log\(/g, 'Math.log(')
+            .replace(/sqrt\(/g, 'Math.sqrt(')
+            .replace(/pi/gi, 'Math.PI')
+            .replace(/pow\(/g, 'Math.pow(');
+        
+        // Handles simple exponential variations like x^2 into Math.pow(x,2)
+        clean = clean.replace(/([a-zA-Z0-9_]+)\s*\^\s*([a-zA-Z0-9_]+)/g, 'Math.pow($1, $2)');
+
+        return new Function(...variables, `return ${clean};`);
+    }
+
     function updateSimulation() {
         try {
-            if (typeof math === 'undefined' || typeof Chart === 'undefined') {
-                alert("Libraries are still loading from CDN edge nodes. Please wait 2 seconds and try again.");
-                return;
-            }
-
-            const fxExpr = math.compile(document.getElementById('fx').value);
-            const fyExpr = math.compile(document.getElementById('fy').value);
-            const rxExpr = math.compile(document.getElementById('rx').value);
-            const ryExpr = math.compile(document.getElementById('ry').value);
+            // Compile inputs straight into native runtime memory execution threads
+            const fxFunc = parseToNativeFunction(document.getElementById('fx').value, ['x', 'y']);
+            const fyFunc = parseToNativeFunction(document.getElementById('fy').value, ['x', 'y']);
+            const rxFunc = parseToNativeFunction(document.getElementById('rx').value, ['t']);
+            const ryFunc = parseToNativeFunction(document.getElementById('ry').value, ['t']);
             
-            const a = math.evaluate(document.getElementById('ta').value);
-            const b = math.evaluate(document.getElementById('tb').value);
+            const a = eval(document.getElementById('ta').value.replace(/pi/gi, 'Math.PI'));
+            const b = eval(document.getElementById('tb').value.replace(/pi/gi, 'Math.PI'));
 
-            const mathSteps = 400; // Optimized calculation pass
+            const mathSteps = 500;
             const mathCurvePoints = [];
             for (let i = 0; i <= mathSteps; i++) {
                 const t = a + (i / mathSteps) * (b - a);
-                mathCurvePoints.push({
-                    x: rxExpr.evaluate({ t: t }),
-                    y: ryExpr.evaluate({ t: t })
-                });
+                mathCurvePoints.push({ x: rxFunc(t), y: ryFunc(t) });
             }
 
             let totalWork = 0;
@@ -193,8 +203,8 @@
                 const midX = (pCurrent.x + pNext.x) / 2;
                 const midY = (pCurrent.y + pNext.y) / 2;
 
-                const Fx = fxExpr.evaluate({ x: midX, y: midY });
-                const Fy = fyExpr.evaluate({ x: midX, y: midY });
+                const Fx = fxFunc(midX, midY);
+                const Fy = fyFunc(midX, midY);
 
                 totalWork += (Fx * dx) + (Fy * dy);
                 totalFlux += (Fx * dy) - (Fy * dx);
@@ -202,8 +212,7 @@
                 if (i % 25 === 0) {
                     const mag = Math.hypot(Fx, Fy) || 1;
                     vectorPoints.push({
-                        x: midX,
-                        y: midY,
+                        x: midX, y: midY,
                         vx: (Fx / mag) * 0.35, 
                         vy: (Fy / mag) * 0.35
                     });
@@ -214,18 +223,15 @@
             document.getElementById('flux-val').textContent = totalFlux.toFixed(4);
 
             const renderCurvePoints = [];
-            const renderSteps = 100; // Drastically optimized canvas trace array
+            const renderSteps = 100;
             for (let i = 0; i <= renderSteps; i++) {
                 const t = a + (i / renderSteps) * (b - a);
-                renderCurvePoints.push({
-                    x: rxExpr.evaluate({ t: t }),
-                    y: ryExpr.evaluate({ t: t })
-                });
+                renderCurvePoints.push({ x: rxFunc(t), y: ryFunc(t) });
             }
 
             renderChart(renderCurvePoints, vectorPoints);
         } catch (error) {
-            alert("Error parsing equations or limits: " + error.message);
+            alert("Calculation Error. Please check equation formatting variables.\n\nDetails: " + error.message);
         }
     }
 
@@ -278,8 +284,3 @@
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                normalized: true,
-                parsing: false,
-                scales: {
