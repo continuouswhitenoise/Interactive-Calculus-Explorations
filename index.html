@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Line Integral Simulator</title>
-    <!-- Stable global asset engine -->
+    <!-- Stable production build framework CDN -->
     <script src="https://jsdelivr.net"></script>
     <style>
         body {
@@ -149,11 +149,9 @@
         <canvas id="simChart"></canvas>
     </div>
 </div>
-
 <script>
     let chartInstance = null;
 
-    // Converted engine structure to translate standard algebraic notation to Javascript syntax
     function parseToNativeFunction(formulaStr, variables) {
         let clean = formulaStr
             .replace(/sin\(/g, 'Math.sin(')
@@ -165,7 +163,7 @@
             .replace(/pi/gi, 'Math.PI')
             .replace(/pow\(/g, 'Math.pow(');
         
-        clean = clean.replace(/([a-zA-Z0-9_]+)\s*\^\s*([a-zA-Z0-9_]+)/g, 'Math.pow($1, $2)');
+        clean = clean.replace(/([a-zA-Z0-9_]+)\s*\^\s*([a-zA-Z0-9_]+)/g, 'Math.pow(\$1, \$2)');
         return new Function(...variables, `return ${clean};`);
     }
 
@@ -179,8 +177,7 @@
             const a = eval(document.getElementById('ta').value.replace(/pi/gi, 'Math.PI'));
             const b = eval(document.getElementById('tb').value.replace(/pi/gi, 'Math.PI'));
 
-            // Calculations pass
-            const mathSteps = 300;
+            const mathSteps = 240;
             const mathCurvePoints = [];
             for (let i = 0; i <= mathSteps; i++) {
                 const t = a + (i / mathSteps) * (b - a);
@@ -220,7 +217,6 @@
             document.getElementById('work-val').textContent = totalWork.toFixed(4);
             document.getElementById('flux-val').textContent = totalFlux.toFixed(4);
 
-            // Chart display rendering pass
             const renderCurvePoints = [];
             const renderSteps = 80; 
             for (let i = 0; i <= renderSteps; i++) {
@@ -284,3 +280,22 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: false,
+                normalized: true,
+                parsing: false,
+                scales: {
+                    x: { grid: { color: '#2D2D2D' }, ticks: { color: '#707070' } },
+                    y: { grid: { color: '#2D2D2D' }, ticks: { color: '#707070' } }
+                },
+                plugins: {
+                    legend: { labels: { color: '#E0E0E0' } }
+                }
+            },
+            plugins: [vectorArrowsPlugin]
+        });
+    }
+
+    window.onload = updateSimulation;
+</script>
+</body>
+</html>
