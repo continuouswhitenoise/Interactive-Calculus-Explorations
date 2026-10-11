@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Line Integral Simulator</title>
-    <!-- Stable production Chart.js framework -->
-    <script src="https://cloudflare.com" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- FIXED: Hardcoded valid production-grade distribution script import -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'DejaVu Sans', Arial, sans-serif; background-color: #121212; color: #E0E0E0; margin: 20px; display: flex; flex-direction: column; align-items: center; }
         .container { max-width: 1000px; width: 100%; background-color: #1E1E1E; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
@@ -42,138 +42,74 @@
 </div>
 <script>
     let chartInstance = null;
-
     function parseToNativeFunction(formulaStr, variables) {
-        // Strip pre-existing Math. prefixes to completely avoid double-mapping bugs
         let clean = formulaStr.replace(/Math\./g, '');
-        
-        // Inject standard algebraic mappings safely
-        clean = clean.replace(/sin\(/g, 'Math.sin(')
-                     .replace(/cos\(/g, 'Math.cos(')
-                     .replace(/tan\(/g, 'Math.tan(')
-                     .replace(/exp\(/g, 'Math.exp(')
-                     .replace(/log\(/g, 'Math.log(')
-                     .replace(/sqrt\(/g, 'Math.sqrt(')
-                     .replace(/pi/gi, 'Math.PI');
-        
-        // Handle powers like x^2 into Math.pow(x,2)
+        clean = clean.replace(/sin\(/g, 'Math.sin(').replace(/cos\(/g, 'Math.cos(').replace(/tan\(/g, 'Math.tan(').replace(/exp\(/g, 'Math.exp(').replace(/log\(/g, 'Math.log(').replace(/sqrt\(/g, 'Math.sqrt(').replace(/pi/gi, 'Math.PI');
         clean = clean.replace(/([a-zA-Z0-9_]+)\s*\^\s*([a-zA-Z0-9_]+)/g, 'Math.pow($1, $2)');
         return new Function(...variables, "return " + clean + ";");
     }
-
     function safeEvalBounds(valStr) {
-        let clean = valStr.replace(/Math\./g, '');
-        // Isolate pi variable mapping logic explicitly for inputs
-        clean = clean.replace(/pi/gi, 'Math.PI')
-                     .replace(/sin\(/g, 'Math.sin(')
-                     .replace(/cos\(/g, 'Math.cos(');
+        let clean = valStr.replace(/Math\./g, '').replace(/pi/gi, 'Math.PI').replace(/sin\(/g, 'Math.sin(').replace(/cos\(/g, 'Math.cos(');
         return new Function("return " + clean + ";")();
     }
-
     function updateSimulation() {
         try {
+            if (typeof Chart === 'undefined') { alert("Chart framework engine is still loading. Wait 1 second."); return; }
             const fxFunc = parseToNativeFunction(document.getElementById('fx').value, ['x', 'y']);
             const fyFunc = parseToNativeFunction(document.getElementById('fy').value, ['x', 'y']);
             const rxFunc = parseToNativeFunction(document.getElementById('rx').value, ['t']);
             const ryFunc = parseToNativeFunction(document.getElementById('ry').value, ['t']);
-            
             const a = safeEvalBounds(document.getElementById('ta').value);
             const b = safeEvalBounds(document.getElementById('tb').value);
-
-            const mathSteps = 150; 
-            const mathCurvePoints = [];
+            const mathSteps = 150; const mathCurvePoints = [];
             for (let i = 0; i <= mathSteps; i++) {
                 const t = a + (i / mathSteps) * (b - a);
                 mathCurvePoints.push({ x: rxFunc(t), y: ryFunc(t) });
             }
-
-            let totalWork = 0; 
-            let totalFlux = 0; 
-            const vectorPoints = [];
-
+            let totalWork = 0; let totalFlux = 0; const vectorPoints = [];
             for (let i = 0; i < mathSteps; i++) {
-                const pCurrent = mathCurvePoints[i]; 
-                const pNext = mathCurvePoints[i + 1];
-
-                const dx = pNext.x - pCurrent.x; 
-                const dy = pNext.y - pCurrent.y;
-
-                const midX = (pCurrent.x + pNext.x) / 2; 
-                const midY = (pCurrent.y + pNext.y) / 2;
-
-                const Fx = fxFunc(midX, midY); 
-                const Fy = fyFunc(midX, midY);
-
-                totalWork += (Fx * dx) + (Fy * dy); 
-                totalFlux += (Fx * dy) - (Fy * dx);
-
+                const pCurrent = mathCurvePoints[i]; const pNext = mathCurvePoints[i + 1];
+                const dx = pNext.x - pCurrent.x; const dy = pNext.y - pCurrent.y;
+                const midX = (pCurrent.x + pNext.x) / 2; const midY = (pCurrent.y + pNext.y) / 2;
+                const Fx = fxFunc(midX, midY); const Fy = fyFunc(midX, midY);
+                totalWork += (Fx * dx) + (Fy * dy); totalFlux += (Fx * dy) - (Fy * dx);
                 if (i % 10 === 0) {
                     const mag = Math.hypot(Fx, Fy) || 1;
                     vectorPoints.push({ x: midX, y: midY, vx: (Fx / mag) * 0.3, vy: (Fy / mag) * 0.3 });
                 }
             }
-
             document.getElementById('work-val').textContent = totalWork.toFixed(4);
             document.getElementById('flux-val').textContent = totalFlux.toFixed(4);
-            
             renderChart(mathCurvePoints, vectorPoints);
-        } catch (error) { 
-            alert("Calculation Error. Please check syntax expressions.\n\nDetails: " + error.message); 
-        }
+        } catch (error) { alert("Calculation Error. Please check syntax expressions.\n\nDetails: " + error.message); }
     }
-
     function renderChart(curveData, vectorData) {
         const ctx = document.getElementById('simChart').getContext('2d');
         if (chartInstance) { chartInstance.destroy(); }
-
         const vectorArrowsPlugin = {
             id: 'vectorArrows',
             afterDatasetsDraw(chart) {
-                const {ctx, scales: {x, y}} = chart; 
-                ctx.save(); 
-                ctx.strokeStyle = 'rgba(0, 122, 204, 0.6)'; 
-                ctx.lineWidth = 1.5;
-
+                const {ctx, scales: {x, y}} = chart; ctx.save(); ctx.strokeStyle = 'rgba(0, 122, 204, 0.6)'; ctx.lineWidth = 1.5;
                 vectorData.forEach(pt => {
-                    const sX = x.getPixelForValue(pt.x); 
-                    const sY = y.getPixelForValue(pt.y);
-                    const eX = x.getPixelForValue(pt.x + pt.vx); 
-                    const eY = y.getPixelForValue(pt.y + pt.vy);
-
-                    ctx.beginPath(); 
-                    ctx.moveTo(sX, sY); 
-                    ctx.lineTo(eX, eY); 
-                    ctx.stroke();
-
+                    const sX = x.getPixelForValue(pt.x); const sY = y.getPixelForValue(pt.y);
+                    const eX = x.getPixelForValue(pt.x + pt.vx); const eY = y.getPixelForValue(pt.y + pt.vy);
+                    ctx.beginPath(); ctx.moveTo(sX, sY); ctx.lineTo(eX, eY); ctx.stroke();
                     const angle = Math.atan2(eY - sY, eX - sX);
-                    ctx.beginPath(); 
-                    ctx.moveTo(eX, eY);
+                    ctx.beginPath(); ctx.moveTo(eX, eY);
                     ctx.lineTo(eX - 6 * Math.cos(angle - Math.PI / 6), eY - 6 * Math.sin(angle - Math.PI / 6));
                     ctx.lineTo(eX - 6 * Math.cos(angle + Math.PI / 6), eY - 6 * Math.sin(angle + Math.PI / 6));
-                    ctx.fillStyle = 'rgba(0, 122, 204, 0.75)'; 
-                    ctx.fill();
+                    ctx.fillStyle = 'rgba(0, 122, 204, 0.75)'; ctx.fill();
                 });
                 ctx.restore();
             }
         };
-
         chartInstance = new Chart(ctx, {
             type: 'scatter',
             data: { datasets: [{ label: 'Curve Path r(t)', data: curveData, showLine: true, borderColor: '#E0E0E0', borderWidth: 2.5, pointRadius: 0 }] },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false, 
-                animation: false, 
-                scales: { 
-                    x: { grid: { color: '#2D2D2D' }, ticks: { color: '#707070' } }, 
-                    y: { grid: { color: '#2D2D2D' }, ticks: { color: '#707070' } } 
-                }, 
-                plugins: { legend: { labels: { color: '#E0E0E0' } } } 
-            },
+            options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { grid: { color: '#2D2D2D' }, ticks: { color: '#707070' } }, y: { grid: { color: '#2D2D2D' }, ticks: { color: '#707070' } } }, plugins: { legend: { labels: { color: '#E0E0E0' } } } },
             plugins: [vectorArrowsPlugin]
         });
     }
-
     window.onload = updateSimulation;
 </script>
 </body>
