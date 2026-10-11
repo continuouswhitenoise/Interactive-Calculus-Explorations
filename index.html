@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Line Integral Simulator</title>
-    <!-- Stable production build framework CDN -->
-    <script src="https://jsdelivr.net"></script>
+    <!-- Hardcoded stable production Chart.js runtime delivery framework -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.3.0/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         body {
             font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif;
@@ -149,6 +149,7 @@
         <canvas id="simChart"></canvas>
     </div>
 </div>
+
 <script>
     let chartInstance = null;
 
@@ -163,7 +164,7 @@
             .replace(/pi/gi, 'Math.PI')
             .replace(/pow\(/g, 'Math.pow(');
         
-        clean = clean.replace(/([a-zA-Z0-9_]+)\s*\^\s*([a-zA-Z0-9_]+)/g, 'Math.pow(\$1, \$2)');
+        clean = clean.replace(/([a-zA-Z0-9_]+)\s*\^\s*([a-zA-Z0-9_]+)/g, 'Math.pow($1, $2)');
         return new Function(...variables, `return ${clean};`);
     }
 
@@ -282,20 +283,3 @@
                 maintainAspectRatio: false,
                 animation: false,
                 normalized: true,
-                parsing: false,
-                scales: {
-                    x: { grid: { color: '#2D2D2D' }, ticks: { color: '#707070' } },
-                    y: { grid: { color: '#2D2D2D' }, ticks: { color: '#707070' } }
-                },
-                plugins: {
-                    legend: { labels: { color: '#E0E0E0' } }
-                }
-            },
-            plugins: [vectorArrowsPlugin]
-        });
-    }
-
-    window.onload = updateSimulation;
-</script>
-</body>
-</html>
