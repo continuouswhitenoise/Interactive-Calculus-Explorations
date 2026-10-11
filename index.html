@@ -23,14 +23,14 @@
 <body>
 <div class="container">
     <h2>Interactive Line Integral Canvas</h2>
-    <p style="color: #A0A0A0; margin-top: -10px; margin-bottom: 25px;">Type expressions using <code>t</code> for the curve and <code>x, y</code> for the field.</p>
+    <p style="color: #A0A0A0; margin-top: -10px; margin-bottom: 25px;">Type expressions using standard math names like <code>cos(t)</code>, <code>sin(t)</code>, <code>pi</code>, <code>x^2</code>.</p>
     <div class="controls">
         <div class="input-group"><label>Vector Field F_x(x, y)</label><input type="text" id="fx" value="-y"></div>
         <div class="input-group"><label>Vector Field F_y(x, y)</label><input type="text" id="fy" value="x"></div>
-        <div class="input-group"><label>Curve x(t)</label><input type="text" id="rx" value="Math.cos(t)"></div>
-        <div class="input-group"><label>Curve y(t)</label><input type="text" id="ry" value="2 * Math.sin(t)"></div>
+        <div class="input-group"><label>Curve x(t)</label><input type="text" id="rx" value="cos(t)"></div>
+        <div class="input-group"><label>Curve y(t)</label><input type="text" id="ry" value="2 * sin(t)"></div>
         <div class="input-group"><label>t start (a)</label><input type="text" id="ta" value="0"></div>
-        <div class="input-group"><label>t end (b)</label><input type="text" id="tb" value="2 * Math.PI"></div>
+        <div class="input-group"><label>t end (b)</label><input type="text" id="tb" value="2 * pi"></div>
     </div>
     <button onclick="updateSimulation()">Calculate & Render Plot</button>
     <div class="results-panel">
@@ -42,9 +42,14 @@
 <script>
     let chartInstance = null;
     function parseToNativeFunction(formulaStr, variables) {
-        let clean = formulaStr.replace(/sin\(/g, 'Math.sin(').replace(/cos\(/g, 'Math.cos(').replace(/tan\(/g, 'Math.tan(').replace(/pi/gi, 'Math.PI');
+        let clean = formulaStr.replace(/Math\./g, '');
+        clean = clean.replace(/sin\(/g, 'Math.sin(').replace(/cos\(/g, 'Math.cos(').replace(/tan\(/g, 'Math.tan(').replace(/exp\(/g, 'Math.exp(').replace(/log\(/g, 'Math.log(').replace(/sqrt\(/g, 'Math.sqrt(').replace(/pi/gi, 'Math.PI');
         clean = clean.replace(/([a-zA-Z0-9_]+)\s*\^\s*([a-zA-Z0-9_]+)/g, 'Math.pow($1, $2)');
         return new Function(...variables, "return " + clean + ";");
+    }
+    function safeEvalBounds(valStr) {
+        let clean = valStr.replace(/Math\./g, '').replace(/pi/gi, 'Math.PI').replace(/sin\(/g, 'Math.sin(').replace(/cos\(/g, 'Math.cos(');
+        return new Function("return " + clean + ";")();
     }
     function updateSimulation() {
         try {
@@ -52,8 +57,8 @@
             const fyFunc = parseToNativeFunction(document.getElementById('fy').value, ['x', 'y']);
             const rxFunc = parseToNativeFunction(document.getElementById('rx').value, ['t']);
             const ryFunc = parseToNativeFunction(document.getElementById('ry').value, ['t']);
-            const a = eval(document.getElementById('ta').value);
-            const b = eval(document.getElementById('tb').value);
+            const a = safeEvalBounds(document.getElementById('ta').value);
+            const b = safeEvalBounds(document.getElementById('tb').value);
             const mathSteps = 150; const mathCurvePoints = [];
             for (let i = 0; i <= mathSteps; i++) {
                 const t = a + (i / mathSteps) * (b - a);
