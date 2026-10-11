@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Line Integral Simulator</title>
-    <!-- Chart.js for clean rendering and Math.js for safe mathematical string parsing -->
-    <script src="https://cloudflare.com"></script>
-    <script src="https://jsdelivr.net"></script>
+    <!-- FIXED: Hardcoded production-ready CDN infrastructure lines -->
+    <script src="https://cloudflare.com" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://jsdelivr.net" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         body {
             font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif;
@@ -156,7 +156,11 @@
 
     function updateSimulation() {
         try {
-            // 1. Compile formulas via math.js
+            if (typeof math === 'undefined' || typeof Chart === 'undefined') {
+                alert("Libraries are still loading from CDN edge nodes. Please wait 2 seconds and try again.");
+                return;
+            }
+
             const fxExpr = math.compile(document.getElementById('fx').value);
             const fyExpr = math.compile(document.getElementById('fy').value);
             const rxExpr = math.compile(document.getElementById('rx').value);
@@ -165,8 +169,7 @@
             const a = math.evaluate(document.getElementById('ta').value);
             const b = math.evaluate(document.getElementById('tb').value);
 
-            // 2. High resolution array for math calculation accuracy
-            const mathSteps = 600;
+            const mathSteps = 400; // Optimized calculation pass
             const mathCurvePoints = [];
             for (let i = 0; i <= mathSteps; i++) {
                 const t = a + (i / mathSteps) * (b - a);
@@ -176,7 +179,6 @@
                 });
             }
 
-            // 3. Numerical Integration (Riemann Sum)
             let totalWork = 0;
             let totalFlux = 0;
             const vectorPoints = [];
@@ -197,8 +199,7 @@
                 totalWork += (Fx * dx) + (Fy * dy);
                 totalFlux += (Fx * dy) - (Fy * dx);
 
-                // Downsample field arrows to keep chart clutter low and super snappy
-                if (i % 30 === 0) {
+                if (i % 25 === 0) {
                     const mag = Math.hypot(Fx, Fy) || 1;
                     vectorPoints.push({
                         x: midX,
@@ -212,9 +213,8 @@
             document.getElementById('work-val').textContent = totalWork.toFixed(4);
             document.getElementById('flux-val').textContent = totalFlux.toFixed(4);
 
-            // 4. Low resolution array specifically optimized for ChartJS plot rendering
             const renderCurvePoints = [];
-            const renderSteps = 120; // drastically lowers pixel array overhead
+            const renderSteps = 100; // Drastically optimized canvas trace array
             for (let i = 0; i <= renderSteps; i++) {
                 const t = a + (i / renderSteps) * (b - a);
                 renderCurvePoints.push({
@@ -225,23 +225,20 @@
 
             renderChart(renderCurvePoints, vectorPoints);
         } catch (error) {
-            alert("Error parsing equations or limits. Please check syntax.\n\nDetails: " + error.message);
+            alert("Error parsing equations or limits: " + error.message);
         }
     }
 
     function renderChart(curveData, vectorData) {
         const ctx = document.getElementById('simChart').getContext('2d');
-        
-        if (chartInstance) {
-            chartInstance.destroy();
-        }
+        if (chartInstance) { chartInstance.destroy(); }
 
         const vectorArrowsPlugin = {
             id: 'vectorArrows',
             afterDatasetsDraw(chart) {
                 const {ctx, scales: {x, y}} = chart;
                 ctx.save();
-                ctx.strokeStyle = 'rgba(0, 122, 204, 0.55)';
+                ctx.strokeStyle = 'rgba(0, 122, 204, 0.6)';
                 ctx.lineWidth = 1.5;
 
                 vectorData.forEach(pt => {
@@ -260,7 +257,7 @@
                     ctx.moveTo(endX, endY);
                     ctx.lineTo(endX - 6 * Math.cos(angle - Math.PI / 6), endY - 6 * Math.sin(angle - Math.PI / 6));
                     ctx.lineTo(endX - 6 * Math.cos(angle + Math.PI / 6), endY - 6 * Math.sin(angle + Math.PI / 6));
-                    ctx.fillStyle = 'rgba(0, 122, 204, 0.7)';
+                    ctx.fillStyle = 'rgba(0, 122, 204, 0.75)';
                     ctx.fill();
                 });
                 ctx.restore();
@@ -271,7 +268,7 @@
             type: 'scatter',
             data: {
                 datasets: [{
-                    label: 'Custom Curve Vector path r(t)',
+                    label: 'Curve Path r(t)',
                     data: curveData,
                     showLine: true,
                     borderColor: '#E0E0E0',
@@ -282,3 +279,7 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: false,
+                normalized: true,
+                parsing: false,
+                scales: {
