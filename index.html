@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Line Integral Simulator</title>
+    <!-- Chart.js for clean rendering and Math.js for safe mathematical string parsing -->
+    <script src="https://cloudflare.com"></script>
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        body {
+            font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif;
+            background-color: #121212;
+            color: #E0E0E0;
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background-color: #1E1E1E;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            color: #A0A0A0;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        input {
+            background-color: #2D2D2D;
+            border: 1px solid #707070;
+            color: #E0E0E0;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .btn-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-top: 15px;
+        }
+        button {
+            background-color: #007acc;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+        button:hover {
+            background-color: #005999;
+        }
+        .results-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            background-color: #252526;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007acc;
+        }
+        .result-card h3 {
+            margin: 0 0 5px 0;
+            font-size: 0.85rem;
+            color: #A0A0A0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .result-card p {
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: #FFF;
+        }
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Interactive Line Integral Canvas</h2>
+    <p style="color: #A0A0A0; margin-top: -10px; margin-bottom: 25px;">Type any mathematical expressions below using <code>t</code> for the curve and <code>x, y</code> for the field.</p>
+    
+    <div class="controls">
+        <div class="input-group">
+            <label for="fx">Vector Field F_x(x, y)</label>
+            <input type="text" id="fx" value="-y">
+        </div>
+        <div class="input-group">
+            <label for="fy">Vector Field F_y(x, y)</label>
+            <input type="text" id="fy" value="x">
+        </div>
+        <div class="input-group">
+            <label for="rx">Curve x(t)</label>
+            <input type="text" id="rx" value="cos(t)">
+        </div>
+        <div class="input-group">
+            <label for="ry">Curve y(t)</label>
+            <input type="text" id="ry" value="2 * sin(t)">
+        </div>
+        <div class="input-group">
+            <label for="ta">t start (a)</label>
+            <input type="text" id="ta" value="0">
+        </div>
+        <div class="input-group">
+            <label for="tb">t end (b)</label>
+            <input type="text" id="tb" value="2 * pi">
+        </div>
+    </div>
+    
+    <div class="btn-container">
+        <button onclick="updateSimulation()">Calculate & Render Plot</button>
+    </div>
+
+    <div class="results-panel">
+        <div class="result-card">
+            <h3>Work Integral (∫ F · dr)</h3>
+            <p id="work-val">0.0000</p>
+        </div>
+        <div class="result-card">
+            <h3>Flux Integral (∫ F · n ds)</h3>
+            <p id="flux-val">0.0000</p>
+        </div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="simChart"></canvas>
+    </div>
+</div>
+
+<script>
+    let chartInstance = null;
+
+    function updateSimulation() {
+        try {
+            // 1. Compile formulas via math.js
+            const fxExpr = math.compile(document.getElementById('fx').value);
+            const fyExpr = math.compile(document.getElementById('fy').value);
+            const rxExpr = math.compile(document.getElementById('rx').value);
+            const ryExpr = math.compile(document.getElementById('ry').value);
+            
+            const a = math.evaluate(document.getElementById('ta').value);
+            const b = math.evaluate(document.getElementById('tb').value);
+
+            // 2. High resolution array for math calculation accuracy
+            const mathSteps = 600;
+            const mathCurvePoints = [];
+            for (let i = 0; i <= mathSteps; i++) {
+                const t = a + (i / mathSteps) * (b - a);
+                mathCurvePoints.push({
+                    x: rxExpr.evaluate({ t: t }),
+                    y: ryExpr.evaluate({ t: t })
+                });
+            }
+
+            // 3. Numerical Integration (Riemann Sum)
+            let totalWork = 0;
+            let totalFlux = 0;
+            const vectorPoints = [];
+
+            for (let i = 0; i < mathSteps; i++) {
+                const pCurrent = mathCurvePoints[i];
+                const pNext = mathCurvePoints[i + 1];
+
+                const dx = pNext.x - pCurrent.x;
+                const dy = pNext.y - pCurrent.y;
+
+                const midX = (pCurrent.x + pNext.x) / 2;
+                const midY = (pCurrent.y + pNext.y) / 2;
+
+                const Fx = fxExpr.evaluate({ x: midX, y: midY });
+                const Fy = fyExpr.evaluate({ x: midX, y: midY });
+
+                totalWork += (Fx * dx) + (Fy * dy);
+                totalFlux += (Fx * dy) - (Fy * dx);
+
+                // Downsample field arrows to keep chart clutter low and super snappy
+                if (i % 30 === 0) {
+                    const mag = Math.hypot(Fx, Fy) || 1;
+                    vectorPoints.push({
+                        x: midX,
+                        y: midY,
+                        vx: (Fx / mag) * 0.35, 
+                        vy: (Fy / mag) * 0.35
+                    });
+                }
+            }
+
+            document.getElementById('work-val').textContent = totalWork.toFixed(4);
+            document.getElementById('flux-val').textContent = totalFlux.toFixed(4);
+
+            // 4. Low resolution array specifically optimized for ChartJS plot rendering
+            const renderCurvePoints = [];
+            const renderSteps = 120; // drastically lowers pixel array overhead
+            for (let i = 0; i <= renderSteps; i++) {
+                const t = a + (i / renderSteps) * (b - a);
+                renderCurvePoints.push({
+                    x: rxExpr.evaluate({ t: t }),
+                    y: ryExpr.evaluate({ t: t })
+                });
+            }
+
+            renderChart(renderCurvePoints, vectorPoints);
+        } catch (error) {
+            alert("Error parsing equations or limits. Please check syntax.\n\nDetails: " + error.message);
+        }
+    }
+
+    function renderChart(curveData, vectorData) {
+        const ctx = document.getElementById('simChart').getContext('2d');
+        
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        const vectorArrowsPlugin = {
+            id: 'vectorArrows',
+            afterDatasetsDraw(chart) {
+                const {ctx, scales: {x, y}} = chart;
+                ctx.save();
+                ctx.strokeStyle = 'rgba(0, 122, 204, 0.55)';
+                ctx.lineWidth = 1.5;
+
+                vectorData.forEach(pt => {
+                    const startX = x.getPixelForValue(pt.x);
+                    const startY = y.getPixelForValue(pt.y);
+                    const endX = x.getPixelForValue(pt.x + pt.vx);
+                    const endY = y.getPixelForValue(pt.y + pt.vy);
+
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+
+                    const angle = Math.atan2(endY - startY, endX - startX);
+                    ctx.beginPath();
+                    ctx.moveTo(endX, endY);
+                    ctx.lineTo(endX - 6 * Math.cos(angle - Math.PI / 6), endY - 6 * Math.sin(angle - Math.PI / 6));
+                    ctx.lineTo(endX - 6 * Math.cos(angle + Math.PI / 6), endY - 6 * Math.sin(angle + Math.PI / 6));
+                    ctx.fillStyle = 'rgba(0, 122, 204, 0.7)';
+                    ctx.fill();
+                });
+                ctx.restore();
+            }
+        };
+
+        chartInstance = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Custom Curve Vector path r(t)',
+                    data: curveData,
+                    showLine: true,
+                    borderColor: '#E0E0E0',
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
