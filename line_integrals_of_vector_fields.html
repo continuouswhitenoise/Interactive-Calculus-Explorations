@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Line Integral Simulator</title>
     <!-- Chart.js for clean rendering and Math.js for safe mathematical string parsing -->
-    <script src="https://jsdelivr.net"></script>
     <script src="https://cloudflare.com"></script>
+    <script src="https://jsdelivr.net"></script>
     <style>
         body {
             font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif;
@@ -156,7 +156,7 @@
 
     function updateSimulation() {
         try {
-            // 1. Compile formulas securely via math.js
+            // 1. Compile formulas via math.js
             const fxExpr = math.compile(document.getElementById('fx').value);
             const fyExpr = math.compile(document.getElementById('fy').value);
             const rxExpr = math.compile(document.getElementById('rx').value);
@@ -165,51 +165,40 @@
             const a = math.evaluate(document.getElementById('ta').value);
             const b = math.evaluate(document.getElementById('tb').value);
 
-            // 2. Sample data arrays
-            const steps = 600; // high granularity for reliable numerical integration
-            const tValues = [];
-            for (let i = 0; i <= steps; i++) {
-                tValues.push(a + (i / steps) * (b - a));
+            // 2. High resolution array for math calculation accuracy
+            const mathSteps = 600;
+            const mathCurvePoints = [];
+            for (let i = 0; i <= mathSteps; i++) {
+                const t = a + (i / mathSteps) * (b - a);
+                mathCurvePoints.push({
+                    x: rxExpr.evaluate({ t: t }),
+                    y: ryExpr.evaluate({ t: t })
+                });
             }
 
-            const curvePoints = [];
-            const vectorPoints = [];
-            
-            // Compute positions along the path
-            tValues.forEach((t) => {
-                const x = rxExpr.evaluate({ t: t });
-                const y = ryExpr.evaluate({ t: t });
-                curvePoints.push({ x: x, y: y });
-            });
-
-            // 3. Numerical Integration (Riemann Sum execution)
+            // 3. Numerical Integration (Riemann Sum)
             let totalWork = 0;
             let totalFlux = 0;
+            const vectorPoints = [];
 
-            for (let i = 0; i < steps; i++) {
-                const pCurrent = curvePoints[i];
-                const pNext = curvePoints[i + 1];
+            for (let i = 0; i < mathSteps; i++) {
+                const pCurrent = mathCurvePoints[i];
+                const pNext = mathCurvePoints[i + 1];
 
-                // Differentials dx and dy
                 const dx = pNext.x - pCurrent.x;
                 const dy = pNext.y - pCurrent.y;
 
-                // Midpoint tracking for better integration accuracy
                 const midX = (pCurrent.x + pNext.x) / 2;
                 const midY = (pCurrent.y + pNext.y) / 2;
 
-                // Evaluate Field components at midpoint
                 const Fx = fxExpr.evaluate({ x: midX, y: midY });
                 const Fy = fyExpr.evaluate({ x: midX, y: midY });
 
-                // Work: Fx*dx + Fy*dy
                 totalWork += (Fx * dx) + (Fy * dy);
-
-                // Flux: Fx*dy - Fy*dx  (using outward normal concept pointing right of tangent)
                 totalFlux += (Fx * dy) - (Fy * dx);
 
-                // Downsample field lines display to keep visualization clean
-                if (i % 24 === 0) {
+                // Downsample field arrows to keep chart clutter low and super snappy
+                if (i % 30 === 0) {
                     const mag = Math.hypot(Fx, Fy) || 1;
                     vectorPoints.push({
                         x: midX,
@@ -220,12 +209,21 @@
                 }
             }
 
-            // Update numerical text displays
             document.getElementById('work-val').textContent = totalWork.toFixed(4);
             document.getElementById('flux-val').textContent = totalFlux.toFixed(4);
 
-            // 4. Render Layout
-            renderChart(curvePoints, vectorPoints);
+            // 4. Low resolution array specifically optimized for ChartJS plot rendering
+            const renderCurvePoints = [];
+            const renderSteps = 120; // drastically lowers pixel array overhead
+            for (let i = 0; i <= renderSteps; i++) {
+                const t = a + (i / renderSteps) * (b - a);
+                renderCurvePoints.push({
+                    x: rxExpr.evaluate({ t: t }),
+                    y: ryExpr.evaluate({ t: t })
+                });
+            }
+
+            renderChart(renderCurvePoints, vectorPoints);
         } catch (error) {
             alert("Error parsing equations or limits. Please check syntax.\n\nDetails: " + error.message);
         }
@@ -238,13 +236,12 @@
             chartInstance.destroy();
         }
 
-        // Custom canvas overlay plugin to construct vector directions seamlessly
         const vectorArrowsPlugin = {
             id: 'vectorArrows',
             afterDatasetsDraw(chart) {
                 const {ctx, scales: {x, y}} = chart;
                 ctx.save();
-                ctx.strokeStyle = 'rgba(0, 122, 204, 0.45)';
+                ctx.strokeStyle = 'rgba(0, 122, 204, 0.55)';
                 ctx.lineWidth = 1.5;
 
                 vectorData.forEach(pt => {
@@ -263,7 +260,7 @@
                     ctx.moveTo(endX, endY);
                     ctx.lineTo(endX - 6 * Math.cos(angle - Math.PI / 6), endY - 6 * Math.sin(angle - Math.PI / 6));
                     ctx.lineTo(endX - 6 * Math.cos(angle + Math.PI / 6), endY - 6 * Math.sin(angle + Math.PI / 6));
-                    ctx.fillStyle = 'rgba(0, 122, 204, 0.65)';
+                    ctx.fillStyle = 'rgba(0, 122, 204, 0.7)';
                     ctx.fill();
                 });
                 ctx.restore();
@@ -284,3 +281,4 @@
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
