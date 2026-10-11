@@ -3,114 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Line Integral Simulator</title>
-    <!-- FIXED: Hardcoded valid production-grade distribution script import -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Interactive Line Integral Calculus Sandbox</title>
+    <!-- PyScript and Pyodide WebAssembly Engines -->
+    <link rel="stylesheet" href="https://pyscript.net">
+    <script type="module" src="https://pyscript.net"></script>
     <style>
-        body { font-family: 'DejaVu Sans', Arial, sans-serif; background-color: #121212; color: #E0E0E0; margin: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { max-width: 1000px; width: 100%; background-color: #1E1E1E; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .input-group { display: flex; flex-direction: column; }
-        label { color: #A0A0A0; font-size: 0.9rem; margin-bottom: 5px; }
-        input { background-color: #2D2D2D; border: 1px solid #707070; color: #E0E0E0; padding: 8px; border-radius: 4px; font-size: 1rem; }
-        button { background-color: #007acc; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 1rem; margin-top: 15px; }
-        button:hover { background-color: #005999; }
-        .results-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; background-color: #252526; padding: 15px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #007acc; }
-        .result-card h3 { margin: 0 0 5px 0; font-size: 0.85rem; color: #A0A0A0; text-transform: uppercase; }
-        .result-card p { margin: 0; font-size: 1.6rem; font-weight: bold; color: #FFF; }
-        .canvas-container { position: relative; width: 100%; height: 500px; }
+        body {
+            font-family: 'DejaVu Sans', Arial, Helvetica, sans-serif;
+            background-color: #121212;
+            color: #E0E0E0;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+        .app-container {
+            max-width: 1250px;
+            width: 100%;
+            background-color: #1E1E1E;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            box-sizing: border-box;
+        }
+        .header-section {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+        .header-section h2 { margin: 0; color: #FFFFFF; font-size: 1.6rem; }
+        .header-section p { margin: 5px 0 0 0; color: #A0A0A0; font-size: 0.9rem; }
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        .input-wrapper { display: flex; flex-direction: column; }
+        .input-wrapper label { color: #A0A0A0; font-size: 0.8rem; margin-bottom: 4px; font-weight: bold; }
+        .input-wrapper input {
+            background-color: #2D2D2D;
+            border: 1px solid #444;
+            color: #FFF;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .input-wrapper input:focus { border-color: #007acc; outline: none; }
+        .button-bar { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn {
+            background-color: #007acc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        .btn:hover { background-color: #005999; }
+        .btn-secondary { background-color: #444; }
+        .btn-secondary:hover { background-color: #555; }
+        #plot-target {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            background-color: #121212;
+            border-radius: 6px;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        #plot-target canvas { max-width: 100% !important; height: auto !important; }
+        .loading-splash {
+            color: #D4AF37;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            font-size: 1.1rem;
+        }
+        py-script { display: none; }
     </style>
 </head>
 <body>
-<div class="container">
-    <h2>Interactive Line Integral Canvas</h2>
-    <p style="color: #A0A0A0; margin-top: -10px; margin-bottom: 25px;">Type expressions using standard math names like <code>cos(t)</code>, <code>sin(t)</code>, <code>pi</code>, <code>x^2</code>.</p>
-    <div class="controls">
-        <div class="input-group"><label>Vector Field F_x(x, y)</label><input type="text" id="fx" value="-y"></div>
-        <div class="input-group"><label>Vector Field F_y(x, y)</label><input type="text" id="fy" value="x"></div>
-        <div class="input-group"><label>Curve x(t)</label><input type="text" id="rx" value="cos(t)"></div>
-        <div class="input-group"><label>Curve y(t)</label><input type="text" id="ry" value="2 * sin(t)"></div>
-        <div class="input-group"><label>t start (a)</label><input type="text" id="ta" value="0"></div>
-        <div class="input-group"><label>t end (b)</label><input type="text" id="tb" value="2 * pi"></div>
+
+<div class="app-container">
+    <div class="header-section">
+        <h2>Vector Calculus Sandbox</h2>
+        <p>Define custom fields and curves using standard Python/NumPy notation (e.g., <code>np.cos(t)</code>, <code>X**2</code>, <code>np.pi</code>).</p>
     </div>
-    <button onclick="updateSimulation()">Calculate & Render Plot</button>
-    <div class="results-panel">
-        <div class="result-card"><h3>Work Integral (∫ F · dr)</h3><p id="work-val">0.0000</p></div>
-        <div class="result-card"><h3>Flux Integral (∫ F · n ds)</h3><p id="flux-val">0.0000</p></div>
+
+    <div class="control-grid">
+        <div class="input-wrapper"><label>Field F_x (X, Y)</label><input type="text" id="input_fx" value="-Y"></div>
+        <div class="input-wrapper"><label>Field F_y (X, Y)</label><input type="text" id="input_fy" value="X"></div>
+        <div class="input-wrapper"><label>Curve x(t)</label><input type="text" id="input_rx" value="np.cos(t)"></div>
+        <div class="input-wrapper"><label>Curve y(t)</label><input type="text" id="input_ry" value="2*np.sin(t)"></div>
+        <div class="input-wrapper"><label>t Min (a)</label><input type="text" id="input_ta" value="0"></div>
+        <div class="input-wrapper"><label>t Max (b)</label><input type="text" id="input_tb" value="2*np.pi"></div>
     </div>
-    <div class="canvas-container"><canvas id="simChart"></canvas></div>
+
+    <div class="button-bar">
+        <button class="btn" id="btn-render">Recompute & Plot</button>
+        <button class="btn btn-secondary" id="btn-toggle">Play/Pause Animation</button>
+    </div>
+
+    <div id="plot-target">
+        <div class="loading-splash" id="loading-msg">Initializing Python Runtime Environment via WebAssembly...</div>
+    </div>
 </div>
-<script>
-    let chartInstance = null;
-    function parseToNativeFunction(formulaStr, variables) {
-        let clean = formulaStr.replace(/Math\./g, '');
-        clean = clean.replace(/sin\(/g, 'Math.sin(').replace(/cos\(/g, 'Math.cos(').replace(/tan\(/g, 'Math.tan(').replace(/exp\(/g, 'Math.exp(').replace(/log\(/g, 'Math.log(').replace(/sqrt\(/g, 'Math.sqrt(').replace(/pi/gi, 'Math.PI');
-        clean = clean.replace(/([a-zA-Z0-9_]+)\s*\^\s*([a-zA-Z0-9_]+)/g, 'Math.pow($1, $2)');
-        return new Function(...variables, "return " + clean + ";");
-    }
-    function safeEvalBounds(valStr) {
-        let clean = valStr.replace(/Math\./g, '').replace(/pi/gi, 'Math.PI').replace(/sin\(/g, 'Math.sin(').replace(/cos\(/g, 'Math.cos(');
-        return new Function("return " + clean + ";")();
-    }
-    function updateSimulation() {
-        try {
-            if (typeof Chart === 'undefined') { alert("Chart framework engine is still loading. Wait 1 second."); return; }
-            const fxFunc = parseToNativeFunction(document.getElementById('fx').value, ['x', 'y']);
-            const fyFunc = parseToNativeFunction(document.getElementById('fy').value, ['x', 'y']);
-            const rxFunc = parseToNativeFunction(document.getElementById('rx').value, ['t']);
-            const ryFunc = parseToNativeFunction(document.getElementById('ry').value, ['t']);
-            const a = safeEvalBounds(document.getElementById('ta').value);
-            const b = safeEvalBounds(document.getElementById('tb').value);
-            const mathSteps = 150; const mathCurvePoints = [];
-            for (let i = 0; i <= mathSteps; i++) {
-                const t = a + (i / mathSteps) * (b - a);
-                mathCurvePoints.push({ x: rxFunc(t), y: ryFunc(t) });
-            }
-            let totalWork = 0; let totalFlux = 0; const vectorPoints = [];
-            for (let i = 0; i < mathSteps; i++) {
-                const pCurrent = mathCurvePoints[i]; const pNext = mathCurvePoints[i + 1];
-                const dx = pNext.x - pCurrent.x; const dy = pNext.y - pCurrent.y;
-                const midX = (pCurrent.x + pNext.x) / 2; const midY = (pCurrent.y + pNext.y) / 2;
-                const Fx = fxFunc(midX, midY); const Fy = fyFunc(midX, midY);
-                totalWork += (Fx * dx) + (Fy * dy); totalFlux += (Fx * dy) - (Fy * dx);
-                if (i % 10 === 0) {
-                    const mag = Math.hypot(Fx, Fy) || 1;
-                    vectorPoints.push({ x: midX, y: midY, vx: (Fx / mag) * 0.3, vy: (Fy / mag) * 0.3 });
-                }
-            }
-            document.getElementById('work-val').textContent = totalWork.toFixed(4);
-            document.getElementById('flux-val').textContent = totalFlux.toFixed(4);
-            renderChart(mathCurvePoints, vectorPoints);
-        } catch (error) { alert("Calculation Error. Please check syntax expressions.\n\nDetails: " + error.message); }
-    }
-    function renderChart(curveData, vectorData) {
-        const ctx = document.getElementById('simChart').getContext('2d');
-        if (chartInstance) { chartInstance.destroy(); }
-        const vectorArrowsPlugin = {
-            id: 'vectorArrows',
-            afterDatasetsDraw(chart) {
-                const {ctx, scales: {x, y}} = chart; ctx.save(); ctx.strokeStyle = 'rgba(0, 122, 204, 0.6)'; ctx.lineWidth = 1.5;
-                vectorData.forEach(pt => {
-                    const sX = x.getPixelForValue(pt.x); const sY = y.getPixelForValue(pt.y);
-                    const eX = x.getPixelForValue(pt.x + pt.vx); const eY = y.getPixelForValue(pt.y + pt.vy);
-                    ctx.beginPath(); ctx.moveTo(sX, sY); ctx.lineTo(eX, eY); ctx.stroke();
-                    const angle = Math.atan2(eY - sY, eX - sX);
-                    ctx.beginPath(); ctx.moveTo(eX, eY);
-                    ctx.lineTo(eX - 6 * Math.cos(angle - Math.PI / 6), eY - 6 * Math.sin(angle - Math.PI / 6));
-                    ctx.lineTo(eX - 6 * Math.cos(angle + Math.PI / 6), eY - 6 * Math.sin(angle + Math.PI / 6));
-                    ctx.fillStyle = 'rgba(0, 122, 204, 0.75)'; ctx.fill();
-                });
-                ctx.restore();
-            }
-        };
-        chartInstance = new Chart(ctx, {
-            type: 'scatter',
-            data: { datasets: [{ label: 'Curve Path r(t)', data: curveData, showLine: true, borderColor: '#E0E0E0', borderWidth: 2.5, pointRadius: 0 }] },
-            options: { responsive: true, maintainAspectRatio: false, animation: false, scales: { x: { grid: { color: '#2D2D2D' }, ticks: { color: '#707070' } }, y: { grid: { color: '#2D2D2D' }, ticks: { color: '#707070' } } }, plugins: { legend: { labels: { color: '#E0E0E0' } } } },
-            plugins: [vectorArrowsPlugin]
-        });
-    }
-    window.onload = updateSimulation;
-</script>
-</body>
-</html>
+
+<!-- Define Python Dependencies -->
+<py-config>
+    packages = ["numpy", "matplotlib"]
+</py-config>
+
+<!-- Complete Native Matplotlib Application Logic Script -->
+<py-script>
+import numpy as np
+import matplotlib
+matplotlib.use('module://matplotlib.backends.html5_canvas')
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from pyodide.ffi import create_proxy
+import js
+
+# Global Context State Dictionary
+state = {
+    'is_playing': True,
+    'current_idx': 0,
+    'step_speed': 2,
+    'anim_ref': None,
+    'fig': None
+}
+
+# Persistent references for elements to prevent memory leakage
+artists = {}
+
+def build_sandbox(event=None):
+    global artists
+    try:
+        # Clear previous configurations cleanly
+        if state['fig'] is not None:
+            plt.close(state['fig'])
+        document.getElementById('loading-msg').style.display = 'none'
+
+        # 1. Safely parse expressions from web user panel inputs
+        str_fx = document.getElementById('input_fx').value
+        str_fy = document.getElementById('input_fy').value
+        str_rx = document.getElementById('input_rx').value
+        str_ry = document.getElementById('input_ry').value
+        
+        # Safe mathematical local sandboxing namespace configuration
+        local_env = {'np': np, 'pi': np.pi, 'sin': np.sin, 'cos': np.cos, 'tan': np.tan, 'exp': np.exp}
+        
+        a = float(eval(document.getElementById('input_ta').value, {}, local_env))
+        b = float(eval(document.getElementById('input_tb').value, {}, local_env))
+
+        # Dynamic construction loops for input functions
+        def vector_field(X, Y):
+            eval_x = eval(str_fx, {'X': X, 'Y': Y, 'np': np}, local_env)
+            eval_y = eval(str_fy, {'X': X, 'Y': Y, 'np': np}, local_env)
+            return np.broadcast_to(eval_x, X.shape).astype(float), np.broadcast_to(eval_y, Y.shape).astype(float)
+
+        def parametric_curve(t):
+            return eval(str_rx, {'t': t, 'np': np}, local_env), eval(str_ry, {'t': t, 'np': np}, local_env)
+
+        # 2. Granular Evaluation Traces
+        t_values = np.linspace(a, b, 400)
+        x_all, y_all = parametric_curve(t_values)
+
+        dx, dy = np.diff(x_all), np.diff(y_all)
+        ds = np.hypot(dx, dy)
+        arc_lengths = np.zeros_like(t_values)
+        arc_lengths[1:] = np.cumsum(ds)
+
+        # Build Tangents and Normals safely avoiding division gaps
+        T_x_all, T_y_all = np.zeros_like(t_values), np.zeros_like(t_values)
+        safeds = np.where(ds == 0, 1e-9, ds)
+        T_x_all[:-1], T_y_all[:-1] = dx / safeds, dy / safeds
+        T_x_all[-1], T_y_all[-1] = T_x_all[-2], T_y_all[-2]
+        N_x_all, N_y_all = T_y_all, -T_x_all
+
+        U_curve, V_curve = vector_field(x_all, y_all)
+        f_work_all = (U_curve * T_x_all) + (V_curve * T_y_all)
+        f_flux_all = (U_curve * N_x_all) + (V_curve * N_y_all)
+
+        # Pre-compute Shading Vector Vertices
+        work_poly_verts = []
+        flux_polygons_verts = []
+        for idx in range(len(t_values)):
+            s_curr = arc_lengths[:idx+1]
+            w_v = np.zeros((len(s_curr) + 2, 2))
+            w_v[0] = [s_curr[0], 0]
+            w_v[1:-1] = np.column_stack((s_curr, f_work_all[:idx+1]))
+            w_v[-1] = [s_curr[-1], 0]
+            work_poly_verts.append(w_v)
+
+            f_v = np.zeros((len(s_curr) + 2, 2))
+            f_v[0] = [s_curr[0], 0]
+            f_v[1:-1] = np.column_stack((s_curr, f_flux_all[:idx+1]))
+            f_v[-1] = [s_curr[-1], 0]
+            flux_polygons_verts.append(f_v)
+
+        # 3. Configure Style Parameters and Subplot Maps
+        plt.rcParams['text.color'] = '#E0E0E0'
+        plt.rcParams['axes.labelcolor'] = '#A0A0A0'
+        plt.rcParams['xtick.color'] = '#707070'
+        plt.rcParams['ytick.color'] = '#707070'
+
+        fig = plt.figure(figsize=(11, 8.5), facecolor='#121212')
+        state['fig'] = fig
+
+        ax1 = plt.subplot2grid((2, 2), (0, 0), colspan=2)
+        ax2 = plt.subplot2grid((2, 2), (1, 0))
+        ax3 = plt.subplot2grid((2, 2), (1, 1))
+        plt.subplots_adjust(hspace=0.38, wspace=0.25, top=0.92, bottom=0.1)
+
+        for sub_ax in [ax1, ax2, ax3]:
+            sub_ax.set_facecolor('#1E1E1E')
+            sub_ax.grid(True, linestyle='--', color='#2D2D2D', alpha=0.5)
+            for s in sub_ax.spines.values(): s.set_color('#333333')
+
+        # --- Subplot 1 Layout (Geometry Space) ---
+        margin_x = 0.5 if (np.max(x_all) - np.min(x_all)) == 0 else (np.max(x_all) - np.min(x_all)) * 0.15
+        margin_y = 0.5 if (np.max(y_all) - np.min(y_all)) == 0 else (np.max(y_all) - np.min(y_all)) * 0.15
+        x_limits = [np.min(x_all) - margin_x, np.max(x_all) + margin_x]
+        y_limits = [np.min(y_all) - margin_y, np.max(y_all) + margin_y]
+
+        X_mesh, Y_mesh = np.meshgrid(np.linspace(x_limits[0], x_limits[1], 15), np.linspace(y_limits[0], y_limits[1], 15))
+        U_mesh, V_mesh = vector_field(X_mesh, Y_mesh)
+        ax1.quiver(X_mesh, Y_mesh, U_mesh, V_mesh, color='#D4AF37', alpha=0.18, width=0.003, headwidth=3)
+        ax1.plot(x_all, y_all, color='#FFFFFF', linestyle='-', linewidth=1.0, alpha=0.15)
+
+        artists['curve_line'], = ax1.plot(x_all[:1], y_all[:1], color='#CCCCCC', linewidth=2.5, label="Curve r(t)")
+        artists['moving_dot'], = ax1.plot([x_all[0]], [y_all[0]], 'o', color='#CCCCCC', markersize=8)
