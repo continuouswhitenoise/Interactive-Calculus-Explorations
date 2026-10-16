@@ -69,11 +69,11 @@ svg{width:100%;height:auto;display:block}
     </div>
 
     <div class="mode-buttons" aria-label="Display mode">
-      <button data-mode="lower" class="active" aria-pressed="true">Lower Sum</button>
-      <button data-mode="left" aria-pressed="false">Left Endpoint</button>
+      <button data-mode="left" class="active" aria-pressed="true">Left Endpoint</button>
       <button data-mode="right" aria-pressed="false">Right Endpoint</button>
       <button data-mode="midpoint" aria-pressed="false">Midpoint</button>
       <button data-mode="upper" aria-pressed="false">Upper Sum</button>
+      <button data-mode="lower" aria-pressed="false">Lower Sum</button>
       <button data-mode="compare" aria-pressed="false">Compare All Five</button>
     </div>
 
@@ -127,17 +127,17 @@ svg{width:100%;height:auto;display:block}
   const functionInput=$("functionInput"), aInput=$("aInput"), bInput=$("bInput");
   const nSlider=$("nSlider"), nValue=$("nValue"), delaySlider=$("delaySlider"), delayValue=$("delayValue");
   const plot=$("plot"), status=$("status"), playButton=$("playButton");
-  let compiledFunction=null, leftEndpoint=0, rightEndpoint=2, mode="lower", animationTimer=null;
+  let compiledFunction=null, leftEndpoint=0, rightEndpoint=2, mode="left", animationTimer=null;
 
   const COLORS={
     bg:"#121212",grid:"#333333",axis:"#b6beca",text:"#a0aec0",curve:"#f6e7a1",
     lower:"#2dd4bf",upper:"#e879f9",left:"#60a5fa",right:"#fb923c",midpoint:"#f6e7a1",white:"#ffffff"
   };
   const METHODS=[
-    {key:"lower",title:"Lower Darboux sum",color:COLORS.lower},
-    {key:"upper",title:"Upper Darboux sum",color:COLORS.upper},
-    {key:"left",title:"Left-endpoint sum",color:COLORS.left},
-    {key:"right",title:"Right-endpoint sum",color:COLORS.right},
+    {key:"lower",title:"Lower Sum",color:COLORS.lower},
+    {key:"upper",title:"Upper Sum",color:COLORS.upper},
+    {key:"left",title:"Left-Endpoint Sum",color:COLORS.left},
+    {key:"right",title:"Right-Endpoint Sum",color:COLORS.right},
     {key:"midpoint",title:"Midpoint sum",color:COLORS.midpoint}
   ];
   const NS="http://www.w3.org/2000/svg";
