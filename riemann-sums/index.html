@@ -58,27 +58,27 @@ svg{width:100%;height:auto;display:block}
 <body>
 <main>
   <h1>Riemann Sums Lab</h1>
-  <p class="subtitle">Explore five ways to approximate accumulated area. Change the function, interval, or partition and compare how the rectangles respond.</p>
+  <p class="subtitle">Explore five ways to approximate accumulated area. Change the function, interval, or partition and compare.</p>
 
   <section class="panel">
     <div class="controls">
       <div class="field"><label for="functionInput">Function f(x)</label><input id="functionInput" type="text" value="x^2" spellcheck="false"></div>
-      <div class="field"><label for="aInput">Left endpoint a</label><input id="aInput" type="number" value="0" step="any"></div>
-      <div class="field"><label for="bInput">Right endpoint b</label><input id="bInput" type="number" value="2" step="any"></div>
+      <div class="field"><label for="aInput">Left Endpoint a</label><input id="aInput" type="number" value="0" step="any"></div>
+      <div class="field"><label for="bInput">Right Endpoint b</label><input id="bInput" type="number" value="2" step="any"></div>
       <button class="primary" id="applyButton">Apply</button>
     </div>
 
     <div class="mode-buttons" aria-label="Display mode">
-      <button data-mode="lower" class="active" aria-pressed="true">Lower sum</button>
-      <button data-mode="upper" aria-pressed="false">Upper sum</button>
-      <button data-mode="left" aria-pressed="false">Left endpoint</button>
-      <button data-mode="right" aria-pressed="false">Right endpoint</button>
+      <button data-mode="lower" class="active" aria-pressed="true">Lower Sum</button>
+      <button data-mode="left" aria-pressed="false">Left Endpoint</button>
+      <button data-mode="right" aria-pressed="false">Right Endpoint</button>
       <button data-mode="midpoint" aria-pressed="false">Midpoint</button>
+      <button data-mode="upper" aria-pressed="false">Upper Sum</button>
       <button data-mode="compare" aria-pressed="false">Compare All Five</button>
     </div>
 
     <div class="slider-area">
-      <div class="slider-row"><label class="slider-heading" for="nSlider">Number of subintervals</label><span id="nValue">4</span></div>
+      <div class="slider-row"><label class="slider-heading" for="nSlider">Number of Subintervals</label><span id="nValue">4</span></div>
       <input id="nSlider" type="range" min="2" max="50" step="1" value="4">
       <div class="slider-labels"><span>n = 2</span><span>n = 50</span></div>
     </div>
@@ -88,8 +88,8 @@ svg{width:100%;height:auto;display:block}
     </div>
     <div class="slider-area">
       <div class="slider-row"><label class="slider-heading" for="delaySlider">Frame Delay (ms)</label><span id="delayValue">250 ms</span></div>
-      <input id="delaySlider" type="range" min="50" max="1000" step="50" value="250">
-      <div class="slider-labels"><span>50 ms · Fast</span><span>1000 ms · Slow</span></div>
+      <input id="delaySlider" type="range" min="50" max="400" step="50" value="250">
+      <div class="slider-labels"><span>50 ms · Fast</span><span>400 ms · Slow</span></div>
     </div>
     <p id="status" class="status" role="status" aria-live="polite"></p>
   </section>
