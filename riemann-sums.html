@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Riemann Sums Laboratory</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/13.2.0/math.min.js"></script>
+<style>
+:root {
+  --bg:#121212; --panel:#1e1e1e; --panel2:#252525; --text:#e2e8f0;
+  --muted:#a0aec0; --teal:#2dd4bf; --magenta:#e879f9; --gold:#f6e7a1;
+  --border:#3b3b3b; --danger:#f87171; --left:#60a5fa; --right:#fb923c;
+  --mid:#f6e7a1;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:24px;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:1500px;margin:0 auto}
+h1{color:var(--gold);margin:0 0 8px;font-size:clamp(1.7rem,4vw,2.4rem)}
+.subtitle{color:var(--muted);margin:0 0 22px;line-height:1.6}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px}
+.controls{display:grid;grid-template-columns:repeat(4,minmax(100px,1fr));gap:14px;align-items:end}
+.field label,.slider-heading{display:block;color:var(--muted);font-size:.9rem;margin-bottom:7px}
+input[type=text],input[type=number]{width:100%;background:#101010;border:1px solid #494949;border-radius:7px;padding:10px;color:var(--text);font:inherit}
+input:focus{outline:2px solid var(--teal);outline-offset:1px}
+button{background:var(--panel2);color:var(--text);border:1px solid #505050;border-radius:8px;padding:10px 14px;cursor:pointer;font:inherit;transition:background .15s,border-color .15s}
+button:hover{border-color:var(--teal)}
+button.active{background:#174b47;border-color:var(--teal);color:#eafffc}
+button.primary{background:#12645c;border-color:var(--teal)}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.mode-buttons,.action-buttons{display:flex;flex-wrap:wrap;gap:8px}
+.mode-buttons{margin-top:16px}
+.slider-area{margin-top:20px}
+.slider-row{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}
+#nValue,#delayValue{color:var(--gold);font-size:1.1rem;font-weight:700}
+input[type=range]{width:100%;accent-color:var(--teal);cursor:pointer}
+.slider-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:.8rem}
+.action-buttons{margin-top:16px}
+.graph-wrap{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:8px;overflow:hidden}
+svg{width:100%;height:auto;display:block}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:14px;margin-bottom:16px}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;min-width:0}
+.stat-label{color:var(--muted);font-size:.84rem;margin-bottom:8px}
+.stat-value{font-size:clamp(.95rem,2vw,1.3rem);font-weight:700;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.lower-value{color:var(--teal)} .upper-value{color:var(--magenta)} .left-value{color:var(--left)} .right-value{color:var(--right)} .mid-value{color:var(--mid)}
+.gap-stat{border-color:#786d3c}
+.gap-value{color:var(--gold)}
+.status{min-height:1.4em;margin:12px 2px 0;color:var(--danger);font-size:.9rem}
+.note{color:var(--muted);line-height:1.65;font-size:.9rem;margin:16px 2px 0}
+.note strong{color:var(--gold)}
+.keyboard{display:inline-block;padding:2px 7px;border:1px solid #555;border-radius:5px;background:#252525;color:var(--text);font-family:monospace}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin:10px 2px 2px;color:var(--muted);font-size:.85rem}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.swatch{display:inline-block;width:11px;height:11px;border-radius:3px}
+@media(max-width:900px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){body{padding:12px}.controls{grid-template-columns:repeat(2,minmax(0,1fr))}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:14px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Riemann Sums Laboratory</h1>
+  <p class="subtitle">Explore five ways to approximate accumulated area. Change the function, interval, or partition and compare how the rectangles respond.</p>
+
+  <section class="panel">
+    <div class="controls">
+      <div class="field"><label for="functionInput">Function f(x)</label><input id="functionInput" type="text" value="x^2" spellcheck="false"></div>
+      <div class="field"><label for="aInput">Left endpoint a</label><input id="aInput" type="number" value="0" step="any"></div>
+      <div class="field"><label for="bInput">Right endpoint b</label><input id="bInput" type="number" value="2" step="any"></div>
+      <button class="primary" id="applyButton">Apply</button>
+    </div>
+
+    <div class="mode-buttons" aria-label="Display mode">
+      <button data-mode="lower" class="active" aria-pressed="true">Lower sum</button>
+      <button data-mode="upper" aria-pressed="false">Upper sum</button>
+      <button data-mode="left" aria-pressed="false">Left endpoint</button>
+      <button data-mode="right" aria-pressed="false">Right endpoint</button>
+      <button data-mode="midpoint" aria-pressed="false">Midpoint</button>
+      <button data-mode="compare" aria-pressed="false">Compare All Five</button>
+    </div>
+
+    <div class="slider-area">
+      <div class="slider-row"><label class="slider-heading" for="nSlider">Number of subintervals</label><span id="nValue">4</span></div>
+      <input id="nSlider" type="range" min="2" max="50" step="1" value="4">
+      <div class="slider-labels"><span>n = 2</span><span>n = 50</span></div>
+    </div>
+    <div class="action-buttons">
+      <button id="playButton" class="primary">▶ Play</button>
+      <button id="resetButton">Reset n = 4</button>
+    </div>
+    <div class="slider-area">
+      <div class="slider-row"><label class="slider-heading" for="delaySlider">Frame Delay (ms)</label><span id="delayValue">250 ms</span></div>
+      <input id="delaySlider" type="range" min="50" max="1000" step="50" value="250">
+      <div class="slider-labels"><span>50 ms · Fast</span><span>1000 ms · Slow</span></div>
+    </div>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </section>
+
+  <section class="graph-wrap">
+    <svg id="plot" viewBox="0 0 1100 510" role="img" aria-label="Function graph with Riemann sum rectangles">
+      <text x="550" y="250" fill="#a0aec0" text-anchor="middle" font-size="18">Preparing graph…</text>
+    </svg>
+  </section>
+
+  <div class="legend" aria-label="Method colors">
+    <span><i class="swatch" style="background:#2dd4bf"></i>Lower</span>
+    <span><i class="swatch" style="background:#e879f9"></i>Upper</span>
+    <span><i class="swatch" style="background:#60a5fa"></i>Left endpoint</span>
+    <span><i class="swatch" style="background:#fb923c"></i>Right endpoint</span>
+    <span><i class="swatch" style="background:#f6e7a1"></i>Midpoint</span>
+  </div>
+
+  <section class="stats" aria-label="Numerical sum estimates">
+    <div class="stat"><div class="stat-label">Lower sum estimate</div><div class="stat-value lower-value" id="lowerResult">—</div></div>
+    <div class="stat"><div class="stat-label">Upper sum estimate</div><div class="stat-value upper-value" id="upperResult">—</div></div>
+    <div class="stat"><div class="stat-label">Left-endpoint sum</div><div class="stat-value left-value" id="leftResult">—</div></div>
+    <div class="stat"><div class="stat-label">Right-endpoint sum</div><div class="stat-value right-value" id="rightResult">—</div></div>
+    <div class="stat"><div class="stat-label">Midpoint sum</div><div class="stat-value mid-value" id="midResult">—</div></div>
+    <div class="stat gap-stat"><div class="stat-label">Upper − lower gap</div><div class="stat-value gap-value" id="gapResult">—</div></div>
+  </section>
+
+  <p class="note"><strong>How to read the sums:</strong> Lower and upper Darboux sums use the infimum and supremum on each subinterval. Here those extrema are estimated by sampling the function at 101 points per subinterval, so they are not certified bounds for every function. Left-, right-, and midpoint sums use the function value at the named sample point. For continuous functions, exact lower and upper Darboux sums squeeze toward the definite integral as the partition is refined.</p>
+  <p class="note">Try <code>x^2</code>, <code>sin(x)</code>, <code>cos(x)</code>, or <code>1/(1+x^2)</code>. Press <span class="keyboard">Space</span> to start or pause autoplay (unless focus is in a control).</p>
+</main>
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const functionInput=$("functionInput"), aInput=$("aInput"), bInput=$("bInput");
+  const nSlider=$("nSlider"), nValue=$("nValue"), delaySlider=$("delaySlider"), delayValue=$("delayValue");
+  const plot=$("plot"), status=$("status"), playButton=$("playButton");
+  let compiledFunction=null, leftEndpoint=0, rightEndpoint=2, mode="lower", animationTimer=null;
+
+  const COLORS={
+    bg:"#121212",grid:"#333333",axis:"#b6beca",text:"#a0aec0",curve:"#f6e7a1",
+    lower:"#2dd4bf",upper:"#e879f9",left:"#60a5fa",right:"#fb923c",midpoint:"#f6e7a1",white:"#ffffff"
+  };
+  const METHODS=[
+    {key:"lower",title:"Lower Darboux sum",color:COLORS.lower},
+    {key:"upper",title:"Upper Darboux sum",color:COLORS.upper},
+    {key:"left",title:"Left-endpoint sum",color:COLORS.left},
+    {key:"right",title:"Right-endpoint sum",color:COLORS.right},
+    {key:"midpoint",title:"Midpoint sum",color:COLORS.midpoint}
+  ];
+  const NS="http://www.w3.org/2000/svg";
+
+  function svgElement(tag,attributes={},parent=plot){
+    const el=document.createElementNS(NS,tag);
+    for(const [key,value] of Object.entries(attributes)) el.setAttribute(key,String(value));
+    parent.appendChild(el); return el;
+  }
+  function svgText(parent,x,y,text,options={}){
+    const el=svgElement("text",{x,y,fill:options.fill||COLORS.text,"font-size":options.size||12,"text-anchor":options.anchor||"middle","font-family":"system-ui, sans-serif"},parent);
+    el.textContent=text; return el;
+  }
+  function evaluate(x){
+    const value=compiledFunction.evaluate({x});
+    if(typeof value!=="number"||!Number.isFinite(value)) throw new Error("The function produced a non-finite real value.");
+    return value;
+  }
+
+  function calculateSums(n){
+    const dx=(rightEndpoint-leftEndpoint)/n, intervals=[];
+    let lowerSum=0,upperSum=0,leftSum=0,rightSum=0,midpointSum=0;
+    const samplesPerInterval=100;
+    for(let i=0;i<n;i++){
+      const x0=leftEndpoint+i*dx, x1=i===n-1?rightEndpoint:leftEndpoint+(i+1)*dx;
+      const yLeft=evaluate(x0), yRight=evaluate(x1), yMid=evaluate((x0+x1)/2);
+      let minValue=Infinity,maxValue=-Infinity;
+      for(let j=0;j<=samplesPerInterval;j++){
+        const xx=x0+(x1-x0)*j/samplesPerInterval, yy=evaluate(xx);
+        minValue=Math.min(minValue,yy); maxValue=Math.max(maxValue,yy);
+      }
+      const width=x1-x0;
+      intervals.push({x0,x1,minValue,maxValue,yLeft,yRight,yMid});
+      lowerSum+=minValue*width; upperSum+=maxValue*width;
+      leftSum+=yLeft*width; rightSum+=yRight*width; midpointSum+=yMid*width;
+    }
+    return {intervals,lowerSum,upperSum,leftSum,rightSum,midpointSum,gap:Math.max(0,upperSum-lowerSum)};
+  }
+
+  function makePlotPanel({x,y,width,height,intervals,kind,panelTitle,expressionValues}){
+    const group=svgElement("g");
+    const margin={left:48,right:14,top:36,bottom:38};
+    const px0=x+margin.left,px1=x+width-margin.right,py0=y+margin.top,py1=y+height-margin.bottom;
+    const graphWidth=px1-px0,graphHeight=py1-py0,xMin=leftEndpoint,xMax=rightEndpoint;
+    let yMin=Math.min(0,...expressionValues),yMax=Math.max(0,...expressionValues);
+    if(Math.abs(yMax-yMin)<1e-10){yMin-=1;yMax+=1;}
+    const padding=(yMax-yMin)*.10;yMin-=padding;yMax+=padding;
+    const X=value=>px0+(value-xMin)/(xMax-xMin)*graphWidth;
+    const Y=value=>py1-(value-yMin)/(yMax-yMin)*graphHeight;
+    const method=METHODS.find(m=>m.key===kind);
+    svgText(group,x+width/2,y+20,panelTitle,{fill:method.color,size:width<400?13:16});
+    for(let k=0;k<=4;k++){
+      const value=yMin+(yMax-yMin)*k/4, yy=Y(value);
+      svgElement("line",{x1:px0,y1:yy,x2:px1,y2:yy,stroke:COLORS.grid,"stroke-width":1},group);
+      svgText(group,px0-7,yy+4,value.toFixed(2),{anchor:"end",size:width<400?8:10});
+    }
+    for(let k=0;k<=4;k++){
+      const value=xMin+(xMax-xMin)*k/4,xx=X(value);
+      svgElement("line",{x1:xx,y1:py0,x2:xx,y2:py1,stroke:COLORS.grid,"stroke-width":1},group);
+      svgText(group,xx,py1+16,Number(value.toPrecision(4)).toString(),{size:width<400?8:10});
+    }
+    if(yMin<=0&&yMax>=0) svgElement("line",{x1:px0,y1:Y(0),x2:px1,y2:Y(0),stroke:COLORS.axis,"stroke-width":1.5},group);
+    svgElement("line",{x1:px0,y1:py0,x2:px0,y2:py1,stroke:COLORS.axis,"stroke-width":1.2},group);
+    const baseline=Y(0), rectColor=method.color;
+    for(const interval of intervals){
+      let sampleValue;
+      if(kind==="lower") sampleValue=interval.minValue;
+      else if(kind==="upper") sampleValue=interval.maxValue;
+      else if(kind==="left") sampleValue=interval.yLeft;
+      else if(kind==="right") sampleValue=interval.yRight;
+      else sampleValue=interval.yMid;
+      const xLeft=X(interval.x0),xRight=X(interval.x1),yValue=Y(sampleValue);
+      svgElement("rect",{x:xLeft,y:Math.min(baseline,yValue),width:Math.max(0,xRight-xLeft),height:Math.max(0,Math.abs(baseline-yValue)),fill:rectColor,"fill-opacity":kind==="midpoint"?.45:.36,stroke:COLORS.white,"stroke-width":.7},group);
+      if(kind==="left"||kind==="right"||kind==="midpoint"){
+        const sampleX=kind==="left"?interval.x0:kind==="right"?interval.x1:(interval.x0+interval.x1)/2;
+        svgElement("circle",{cx:X(sampleX),cy:Y(sampleValue),r:width<400?1.8:2.6,fill:rectColor,stroke:COLORS.bg,"stroke-width":.7},group);
+      }
+    }
+    const pathPoints=[],curveSamples=500;
+    for(let i=0;i<=curveSamples;i++){
+      const xx=xMin+(xMax-xMin)*i/curveSamples,yy=evaluate(xx);
+      pathPoints.push((i===0?"M":"L")+X(xx).toFixed(2)+","+Y(yy).toFixed(2));
+    }
+    svgElement("path",{d:pathPoints.join(" "),fill:"none",stroke:COLORS.curve,"stroke-width":2.2,"stroke-linejoin":"round","stroke-linecap":"round"},group);
+    svgText(group,px1-3,py0+13,"f(x)",{fill:COLORS.curve,anchor:"end",size:11});
+  }
+
+  function formatNumber(value){
+    if(!Number.isFinite(value))return "—";
+    if(Math.abs(value)>=1e7||(value!==0&&Math.abs(value)<1e-5))return value.toExponential(4);
+    return value.toFixed(6);
+  }
+  function updateStats(result){
+    $("lowerResult").textContent=formatNumber(result.lowerSum);
+    $("upperResult").textContent=formatNumber(result.upperSum);
+    $("leftResult").textContent=formatNumber(result.leftSum);
+    $("rightResult").textContent=formatNumber(result.rightSum);
+    $("midResult").textContent=formatNumber(result.midpointSum);
+    $("gapResult").textContent=formatNumber(result.gap);
+  }
+  function render(){
+    const n=Number(nSlider.value); nValue.textContent=n;
+    try{
+      if(!compiledFunction)return;
+      const result=calculateSums(n);updateStats(result);plot.replaceChildren();
+      const viewWidth=1100,viewHeight=mode==="compare"?830:510;
+      svgElement("rect",{x:0,y:0,width:viewWidth,height:viewHeight,fill:COLORS.bg,rx:8});
+      const curveValues=[];
+      for(let i=0;i<=500;i++)curveValues.push(evaluate(leftEndpoint+(rightEndpoint-leftEndpoint)*i/500));
+      for(const it of result.intervals)curveValues.push(it.minValue,it.maxValue,it.yLeft,it.yRight,it.yMid);
+      if(mode==="compare"){
+        // Three charts on the first row; two centered charts on the second.
+        const panelW=360,panelH=405;
+        const positions=[
+          {x:0,y:0},{x:370,y:0},{x:740,y:0},
+          {x:185,y:415},{x:555,y:415}
+        ];
+        for(let i=0;i<METHODS.length;i++){
+          const m=METHODS[i],p=positions[i];
+          makePlotPanel({x:p.x,y:p.y,width:panelW,height:panelH,intervals:result.intervals,kind:m.key,panelTitle:m.title,expressionValues:curveValues});
+        }
+      }else{
+        const method=METHODS.find(m=>m.key===mode);
+        makePlotPanel({x:0,y:0,width:1100,height:510,intervals:result.intervals,kind:mode,panelTitle:method.title,expressionValues:curveValues});
+      }
+      plot.setAttribute("viewBox",`0 0 1100 ${viewHeight}`);
+      status.textContent="";
+    }catch(error){status.textContent="Rendering error: "+error.message;}
+  }
+
+  function applyInputs(){
+    try{
+      if(typeof math==="undefined")throw new Error("Math.js did not load. Check your internet connection and reload.");
+      const expression=functionInput.value.trim();if(!expression)throw new Error("Enter a function of x.");
+      const a=Number(aInput.value),b=Number(bInput.value);
+      if(aInput.value.trim()===""||bInput.value.trim()===""||!Number.isFinite(a)||!Number.isFinite(b)||!(a<b))throw new Error("Enter finite endpoints with a < b.");
+      const nextFunction=math.compile(expression),oldFunction=compiledFunction,oldA=leftEndpoint,oldB=rightEndpoint;
+      compiledFunction=nextFunction;leftEndpoint=a;rightEndpoint=b;
+      try{for(let i=0;i<=500;i++)evaluate(a+(b-a)*i/500);}
+      catch(error){compiledFunction=oldFunction;leftEndpoint=oldA;rightEndpoint=oldB;throw error;}
+      status.textContent="";render();
+    }catch(error){status.textContent="Input error: "+error.message;}
+  }
+  function setMode(nextMode){
+    mode=nextMode;
+    document.querySelectorAll("[data-mode]").forEach(button=>{
+      const active=button.dataset.mode===mode;
+      button.classList.toggle("active",active);button.setAttribute("aria-pressed",String(active));
+    });
+    render();
+  }
+  function stopAnimation(){
+    if(animationTimer!==null){clearInterval(animationTimer);animationTimer=null;}
+    playButton.textContent="▶ Play";
+  }
+  function startAnimation(){
+    if(animationTimer!==null)return;
+    playButton.textContent="⏸ Pause";
+    animationTimer=setInterval(()=>{
+      let n=Number(nSlider.value)+1;if(n>Number(nSlider.max))n=Number(nSlider.min);
+      nSlider.value=n;render();
+    },Number(delaySlider.value));
+  }
+  function toggleAnimation(){if(animationTimer===null)startAnimation();else stopAnimation();}
+
+  $("applyButton").addEventListener("click",applyInputs);
+  for(const input of [functionInput,aInput,bInput])input.addEventListener("keydown",event=>{if(event.key==="Enter")applyInputs();});
+  document.querySelectorAll("[data-mode]").forEach(button=>button.addEventListener("click",()=>setMode(button.dataset.mode)));
+  nSlider.addEventListener("input",render);
+  playButton.addEventListener("click",toggleAnimation);
+  $("resetButton").addEventListener("click",()=>{stopAnimation();nSlider.value=4;render();});
+  delaySlider.addEventListener("input",()=>{
+    delayValue.textContent=`${delaySlider.value} ms`;
+    if(animationTimer!==null){stopAnimation();startAnimation();}
+  });
+  document.addEventListener("keydown",event=>{
+    if(event.code!=="Space"||event.repeat)return;
+    const target=event.target;
+    const isTyping=target instanceof HTMLInputElement||target instanceof HTMLTextAreaElement||target instanceof HTMLButtonElement||target.isContentEditable;
+    if(isTyping)return;
+    event.preventDefault();toggleAnimation();
+  });
+  delayValue.textContent=`${delaySlider.value} ms`;
+  applyInputs();
+})();
+</script>
+</body>
+</html>
