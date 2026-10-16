@@ -141,7 +141,7 @@
     <div class="control-row">
       <label>Frame Delay (ms):</label>
       <input type="range" id="speedSlider" class="speed-slider" min="20" max="400" value="120" step="10" />
-      <span class="val-display" id="speedVal">120 ms</span>
+      <span class="val-display" id="speedVal">50 ms</span>
     </div>
     <div class="btn-row">
       <button id="btnPlay" class="primary">Play</button>
@@ -261,7 +261,8 @@
     let isPlaying = false;
     let direction = 1;
     let lastTime = 0;
-    let intervalMs = parseInt(speedSlider.value, 10);
+    let intervalMs = 50;
+    speedVal.textContent = "50 ms";
 
     function updateView(n) {
       currentN = n;
