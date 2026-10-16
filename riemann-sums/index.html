@@ -58,7 +58,7 @@ svg{width:100%;height:auto;display:block}
 <body>
 <main>
   <h1>Riemann Sums Lab</h1>
-  <p class="subtitle">Explore five ways to approximate accumulated area. Change the function, interval, or partition and compare.</p>
+  <p class="subtitle">Explore five ways to approximate accumulated area. Change the function, interval, or partition and compare!</p>
 
   <section class="panel">
     <div class="controls">
@@ -110,32 +110,32 @@ svg{width:100%;height:auto;display:block}
 
   <section class="stats" aria-label="Numerical sum estimates">
     <div class="stat">
-      <div class="stat-label">Left-endpoint sum</div>
+      <div class="stat-label">Left-Endpoint Sum</div>
       <div class="stat-value left-value" id="leftResult">—</div>
     </div>
     <div class="stat">
-      <div class="stat-label">Right-endpoint sum</div>
+      <div class="stat-label">Right-Endpoint Sum</div>
       <div class="stat-value right-value" id="rightResult">—</div>
     </div>
     <div class="stat">
-      <div class="stat-label">Midpoint sum</div>
+      <div class="stat-label">Midpoint Sum</div>
       <div class="stat-value mid-value" id="midResult">—</div>
     </div>
     <div class="stat">
-      <div class="stat-label">Upper sum estimate</div>
+      <div class="stat-label">Upper Sum estimate</div>
       <div class="stat-value upper-value" id="upperResult">—</div>
     </div>
     <div class="stat">
-      <div class="stat-label">Lower sum estimate</div>
+      <div class="stat-label">Lower Sum estimate</div>
       <div class="stat-value lower-value" id="lowerResult">—</div>
     </div>
     <div class="stat gap-stat">
-      <div class="stat-label">Upper − lower gap</div>
+      <div class="stat-label">Upper − lower Difference</div>
       <div class="stat-value gap-value" id="gapResult">—</div>
     </div>
   </section>
 
-  <p class="note"><strong>How to read the sums:</strong> Lower and upper Darboux sums use the infimum and supremum on each subinterval. Here those extrema are estimated by sampling the function at 101 points per subinterval, so they are not certified bounds for every function. Left-, right-, and midpoint sums use the function value at the named sample point. For continuous functions, exact lower and upper Darboux sums squeeze toward the definite integral as the partition is refined.</p>
+  <p class="note"><strong>How to read the sums: <strong>How to read the sums:</strong> Each method approximates the signed area under the curve using rectangles. Compare how the choice of sample points affects the approximation. The upper and lower sums estimate the maximum and minimum function values on each subinterval by sampling.
   <p class="note">Try <code>x^2</code>, <code>sin(x)</code>, <code>cos(x)</code>, or <code>1/(1+x^2)</code>. Press <span class="keyboard">Space</span> to start or pause autoplay (unless focus is in a control).</p>
 </main>
 <script>
