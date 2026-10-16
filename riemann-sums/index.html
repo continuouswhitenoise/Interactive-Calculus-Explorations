@@ -101,20 +101,38 @@ svg{width:100%;height:auto;display:block}
   </section>
 
   <div class="legend" aria-label="Method colors">
-    <span><i class="swatch" style="background:#2dd4bf"></i>Lower</span>
-    <span><i class="swatch" style="background:#e879f9"></i>Upper</span>
     <span><i class="swatch" style="background:#60a5fa"></i>Left endpoint</span>
     <span><i class="swatch" style="background:#fb923c"></i>Right endpoint</span>
     <span><i class="swatch" style="background:#f6e7a1"></i>Midpoint</span>
+    <span><i class="swatch" style="background:#2dd4bf"></i>Lower</span>
+    <span><i class="swatch" style="background:#e879f9"></i>Upper</span>
   </div>
 
   <section class="stats" aria-label="Numerical sum estimates">
-    <div class="stat"><div class="stat-label">Lower sum estimate</div><div class="stat-value lower-value" id="lowerResult">—</div></div>
-    <div class="stat"><div class="stat-label">Upper sum estimate</div><div class="stat-value upper-value" id="upperResult">—</div></div>
-    <div class="stat"><div class="stat-label">Left-endpoint sum</div><div class="stat-value left-value" id="leftResult">—</div></div>
-    <div class="stat"><div class="stat-label">Right-endpoint sum</div><div class="stat-value right-value" id="rightResult">—</div></div>
-    <div class="stat"><div class="stat-label">Midpoint sum</div><div class="stat-value mid-value" id="midResult">—</div></div>
-    <div class="stat gap-stat"><div class="stat-label">Upper − lower gap</div><div class="stat-value gap-value" id="gapResult">—</div></div>
+    <div class="stat">
+      <div class="stat-label">Left-endpoint sum</div>
+      <div class="stat-value left-value" id="leftResult">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Right-endpoint sum</div>
+      <div class="stat-value right-value" id="rightResult">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Midpoint sum</div>
+      <div class="stat-value mid-value" id="midResult">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Upper sum estimate</div>
+      <div class="stat-value upper-value" id="upperResult">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Lower sum estimate</div>
+      <div class="stat-value lower-value" id="lowerResult">—</div>
+    </div>
+    <div class="stat gap-stat">
+      <div class="stat-label">Upper − lower gap</div>
+      <div class="stat-value gap-value" id="gapResult">—</div>
+    </div>
   </section>
 
   <p class="note"><strong>How to read the sums:</strong> Lower and upper Darboux sums use the infimum and supremum on each subinterval. Here those extrema are estimated by sampling the function at 101 points per subinterval, so they are not certified bounds for every function. Left-, right-, and midpoint sums use the function value at the named sample point. For continuous functions, exact lower and upper Darboux sums squeeze toward the definite integral as the partition is refined.</p>
@@ -134,11 +152,11 @@ svg{width:100%;height:auto;display:block}
     lower:"#2dd4bf",upper:"#e879f9",left:"#60a5fa",right:"#fb923c",midpoint:"#f6e7a1",white:"#ffffff"
   };
   const METHODS=[
-    {key:"lower",title:"Lower Sum",color:COLORS.lower},
-    {key:"upper",title:"Upper Sum",color:COLORS.upper},
     {key:"left",title:"Left-Endpoint Sum",color:COLORS.left},
     {key:"right",title:"Right-Endpoint Sum",color:COLORS.right},
-    {key:"midpoint",title:"Midpoint sum",color:COLORS.midpoint}
+    {key:"midpoint",title:"Midpoint Sum",color:COLORS.midpoint},
+    {key:"upper",title:"Upper Sum",color:COLORS.upper},
+    {key:"lower",title:"Lower Sum",color:COLORS.lower}
   ];
   const NS="http://www.w3.org/2000/svg";
 
