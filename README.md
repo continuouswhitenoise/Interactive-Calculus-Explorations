@@ -9,7 +9,7 @@ An interactive geometric simulation approximating π using inscribed and circums
 
 ## Live Demo
 View the interactive simulation here:
-👉 **https://YOUR_USERNAME.github.io/pi-approximation/**
+👉 **https://continuouswhitenoise.github.io/pi-approximation/**
 
 ## How It Works
 Generated offline from Python using `numpy` and `plotly` via `regular_polygons_approximation.py`.
