@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Interactive Mathematics Lab</title>
+
   <style>
     body {
       margin: 0;
@@ -19,7 +20,9 @@
       margin: auto;
     }
 
-    h1 { color: #f6e7a1; }
+    h1 {
+      color: #f6e7a1;
+    }
 
     .projects {
       display: grid;
@@ -36,7 +39,19 @@
       background: #1e2228;
     }
 
-    h2 { color: #f6e7a1; }
+    .project img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-bottom: 1.25rem;
+      border: 1px solid #3b414a;
+    }
+
+    h2 {
+      color: #f6e7a1;
+    }
 
     a {
       display: inline-block;
@@ -45,37 +60,55 @@
       text-decoration: none;
     }
 
-    a:hover { text-decoration: underline; }
+    a:hover {
+      text-decoration: underline;
+    }
 
-    p { line-height: 1.7; color: #cbd5e1; }
+    p {
+      line-height: 1.7;
+      color: #cbd5e1;
+    }
   </style>
 </head>
+
 <body>
   <main>
     <h1>Interactive Mathematics Lab</h1>
+
     <p>
       Explore mathematical ideas through interactive
       simulations, visual experiments, and approximation.
     </p>
 
     <div class="projects">
+
       <section class="project">
+        <img
+          src="./images/riemann-sums.png"
+          alt="Riemann sum rectangles approximating the area under a curve"
+        >
+
         <h2>Riemann Sums</h2>
+
         <p>
           Visualize how partitions and sample points
           produce approximations to definite integrals.
         </p>
+
         <a href="./riemann-sums/">Open simulation →</a>
       </section>
 
       <section class="project">
         <h2>Approximating π with Polygons</h2>
+
         <p>
           Compare inscribed and circumscribed regular
           polygons as the number of sides increases.
         </p>
+
         <a href="./polygon-pi/">Open simulation →</a>
       </section>
+
     </div>
   </main>
 </body>
