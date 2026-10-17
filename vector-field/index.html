@@ -187,21 +187,21 @@
     <p class="intro" style="margin-bottom:14px">Each graph shows its density as a function of arc length <i>s</i>. The shaded region follows the moving point, showing the signed accumulated area from the start of the curve to the current position.</p>
     <div class="graphs-grid">
       <div class="graph-card">
-        <h3>Work density</h3>
-        <p class="graph-subtitle">f<sub>work</sub>(s) = F(R(s)) · T(s)</p>
+        <h3>Flow</h3>
+        <p class="graph-subtitle">f<sub>flow</sub>(s) = F(R(s)) · T(s)</p>
         <canvas id="workGraph" width="520" height="260" aria-label="Graph of work density against arc length with signed area shaded up to the current position"></canvas>
         <div class="integral-readout"><span>Accumulated work</span><strong id="workIntegralOut">0.0000</strong></div>
       </div>
       <div class="graph-card">
-        <h3>Flux density</h3>
+        <h3>Flux</h3>
         <p class="graph-subtitle">f<sub>flux</sub>(s) = F(R(s)) · N(s)</p>
         <canvas id="fluxGraph" width="520" height="260" aria-label="Graph of flux density against arc length with signed area shaded up to the current position"></canvas>
         <div class="integral-readout"><span>Accumulated flux</span><strong id="fluxIntegralOut">0.0000</strong></div>
       </div>
     </div>
     <div class="graph-key">
-      <span><i class="key-line" style="background:#fb923c"></i>Work density curve</span>
-      <span><i class="key-line" style="background:#60a5fa"></i>Flux density curve</span>
+      <span><i class="key-line" style="background:#fb923c"></i>Flow curve</span>
+      <span><i class="key-line" style="background:#60a5fa"></i>Flux curve</span>
       <span><i class="key-line" style="background:#64748b"></i>Signed area accumulated up to current s</span>
     </div>
     <p class="note">Area above the horizontal axis contributes positively; area below contributes negatively. The accumulated values approximate the corresponding line integrals along the portion of the curve already traversed. At the end of a closed traversal, these approach the total work and total outward flux for this chosen orientation.</p>
